@@ -31,9 +31,9 @@ dependencies = [
 mcp = ["mcp"]
 
 [project.urls]
-Homepage = "https://github.com/markstanford/copa"
-Repository = "https://github.com/markstanford/copa"
-Issues = "https://github.com/markstanford/copa/issues"
+Homepage = "https://github.com/MaStanford/copa"
+Repository = "https://github.com/MaStanford/copa"
+Issues = "https://github.com/MaStanford/copa/issues"
 
 [project.scripts]
 copa = "copa.cli:cli"

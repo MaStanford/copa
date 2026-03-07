@@ -21,7 +21,7 @@ brew install fzf  # if not already installed
 
 pip install copa
 # or from source:
-git clone https://github.com/markstanford/copa.git
+git clone https://github.com/MaStanford/copa.git
 cd copa
 pip install -e .
 ```
