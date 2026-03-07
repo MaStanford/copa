@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "copa"
+version = "0.1.0"
+description = "Command Palette — smart command tracking, ranking, and sharing for your shell"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.12"
+authors = [
+    { name = "Mark Stanford" },
+]
+keywords = ["cli", "command-palette", "shell", "fzf", "productivity"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: System :: Shells",
+    "Topic :: Utilities",
+]
+dependencies = [
+    "click>=8.0",
+]
+
+[project.optional-dependencies]
+mcp = ["mcp"]
+
+[project.urls]
+Homepage = "https://github.com/markstanford/copa"
+Repository = "https://github.com/markstanford/copa"
+Issues = "https://github.com/markstanford/copa/issues"
+
+[project.scripts]
+copa = "copa.cli:cli"
+
+[tool.setuptools.packages.find]
+include = ["copa*"]
