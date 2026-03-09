@@ -8,31 +8,59 @@ from pathlib import Path
 
 from .db import Database
 
-# Patterns to extract description from script headers
-# Each returns a match group that may have a prefix like "@ description:" — cleaned later
-DESC_PATTERNS = [
-    re.compile(r"^#\s*@?\s*[Dd]escription:\s*(.+)$"),
-    re.compile(r"^#\s*@?\s*[Pp]urpose:\s*(.+)$"),
-    re.compile(r"^#\s*@?\s*[Uu]sage:\s*(.+)$"),
+# --- Pass 1: #@ Protocol headers (highest priority) ---
+PROTOCOL_DESC = re.compile(r"^#@\s*[Dd]escription:\s*(.+)$")
+PROTOCOL_USAGE = re.compile(r"^#@\s*[Uu]sage:\s*(.+)$")
+
+# --- Pass 2: Legacy fallback patterns ---
+LEGACY_PATTERNS = [
+    re.compile(r"^#\s*[Dd]escription:\s*(.+)$"),
+    re.compile(r"^#\s*[Pp]urpose:\s*(.+)$"),
+    re.compile(r"^#\s*[Uu]sage:\s*(.+)$"),
     re.compile(r'^"""\s*(.+?)(?:""")?$'),  # Python docstring one-liner
     re.compile(r"^#\s*(?![@!])(.{10,80})$"),  # Generic comment (skip @ prefix lines)
 ]
 
 
 def extract_description(path: Path) -> str:
-    """Extract a description from a script file's header comments."""
+    """Extract a description from a script file's header comments.
+
+    Uses a two-pass approach:
+      Pass 1 — #@ protocol headers (highest priority)
+      Pass 2 — Legacy comment patterns (fallback)
+    """
     try:
         with open(path, "r", errors="replace") as f:
             lines = []
             for i, line in enumerate(f):
-                if i > 20:  # Only look at first 20 lines
+                if i >= 30:  # Check first 30 lines for protocol headers
                     break
                 lines.append(line.rstrip())
     except OSError:
         return ""
 
+    # --- Pass 1: Protocol headers ---
+    description = ""
+    usage = ""
+
     for line in lines:
-        for pattern in DESC_PATTERNS:
+        m = PROTOCOL_DESC.match(line)
+        if m:
+            description = m.group(1).strip()
+            continue
+        m = PROTOCOL_USAGE.match(line)
+        if m:
+            usage = m.group(1).strip()
+            continue
+
+    if description:
+        if usage:
+            return f"{description} | Usage: {usage}"
+        return description
+
+    # --- Pass 2: Legacy fallbacks ---
+    for line in lines:
+        for pattern in LEGACY_PATTERNS:
             m = pattern.match(line)
             if m:
                 desc = m.group(1).strip()

@@ -220,6 +220,7 @@ class Database:
         limit: int = 50,
         source: str | None = None,
         needs_description: bool | None = None,
+        shared_set: str | None = None,
     ) -> list[Command]:
         """List commands, optionally filtered."""
         clauses = []
@@ -234,6 +235,9 @@ class Database:
         if needs_description is not None:
             clauses.append("needs_description = ?")
             params.append(int(needs_description))
+        if shared_set is not None:
+            clauses.append("shared_set = ?")
+            params.append(shared_set)
 
         where = ""
         if clauses:
@@ -249,29 +253,40 @@ class Database:
             commands.append(cmd)
         return commands
 
-    def search_commands(self, query: str, group_name: str | None = None, limit: int = 50) -> list[Command]:
+    def search_commands(
+        self, query: str, group_name: str | None = None,
+        source: str | None = None, shared_set: str | None = None,
+        limit: int = 50,
+    ) -> list[Command]:
         """FTS5 search across command text and descriptions."""
         cur = self.conn.cursor()
         # Escape FTS special chars and add prefix matching
         safe_query = query.replace('"', '""')
         fts_query = f'"{safe_query}"*'
 
+        clauses = ["commands_fts MATCH ?"]
+        params: list = [fts_query]
+
         if group_name is not None:
-            cur.execute(
-                """SELECT c.* FROM commands c
-                   JOIN commands_fts f ON c.id = f.rowid
-                   WHERE commands_fts MATCH ? AND c.group_name = ?
-                   LIMIT ?""",
-                (fts_query, group_name, limit),
-            )
-        else:
-            cur.execute(
-                """SELECT c.* FROM commands c
-                   JOIN commands_fts f ON c.id = f.rowid
-                   WHERE commands_fts MATCH ?
-                   LIMIT ?""",
-                (fts_query, limit),
-            )
+            clauses.append("c.group_name = ?")
+            params.append(group_name)
+        if source is not None:
+            clauses.append("c.source = ?")
+            params.append(source)
+        if shared_set is not None:
+            clauses.append("c.shared_set = ?")
+            params.append(shared_set)
+
+        where = "WHERE " + " AND ".join(clauses)
+        params.append(limit)
+
+        cur.execute(
+            f"""SELECT c.* FROM commands c
+               JOIN commands_fts f ON c.id = f.rowid
+               {where}
+               LIMIT ?""",
+            params,
+        )
 
         rows = cur.fetchall()
         commands = []

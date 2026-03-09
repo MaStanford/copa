@@ -67,13 +67,20 @@ def format_preview(cmd: Command) -> str:
     return "\n".join(lines)
 
 
-def fzf_list(db: Database, mode: str = "all", group: str | None = None) -> list[str]:
+def fzf_list(
+    db: Database, mode: str = "all", group: str | None = None,
+    shared_set: str | None = None,
+) -> list[str]:
     """Generate fzf-compatible output lines.
 
-    Modes: all, frequent, recent, group
+    Modes: all, frequent, recent, group, set
     """
-    if mode == "group" and group:
+    if mode == "set" and shared_set:
+        commands = db.list_commands(shared_set=shared_set, limit=500)
+    elif mode == "group" and group:
         commands = db.list_commands(group_name=group, limit=500)
+    elif shared_set:
+        commands = db.list_commands(shared_set=shared_set, limit=500)
     else:
         commands = db.get_all_commands()
 

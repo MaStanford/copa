@@ -64,8 +64,9 @@ def add(command: str, description: str, group: str | None, tag: tuple[str, ...],
 @click.option("-g", "--group", default=None, help="Filter by group.")
 @click.option("-n", "--limit", default=20, help="Number of commands to show.")
 @click.option("-s", "--source", default=None, help="Filter by source.")
+@click.option("--set", "shared_set", default=None, help="Filter by shared set.")
 @click.option("--needs-desc", is_flag=True, help="Show only commands needing description.")
-def list_cmd(group: str | None, limit: int, source: str | None, needs_desc: bool):
+def list_cmd(group: str | None, limit: int, source: str | None, shared_set: str | None, needs_desc: bool):
     """List commands ranked by score."""
     db = get_db()
     commands = db.list_commands(
@@ -73,6 +74,7 @@ def list_cmd(group: str | None, limit: int, source: str | None, needs_desc: bool
         limit=limit,
         source=source,
         needs_description=True if needs_desc else None,
+        shared_set=shared_set,
     )
     ranked = rank_commands(commands)
     if not ranked:
@@ -103,11 +105,13 @@ def list_cmd(group: str | None, limit: int, source: str | None, needs_desc: bool
 @cli.command()
 @click.argument("query")
 @click.option("-g", "--group", default=None, help="Filter by group.")
+@click.option("-s", "--source", default=None, help="Filter by source.")
+@click.option("--set", "shared_set", default=None, help="Filter by shared set.")
 @click.option("-n", "--limit", default=20, help="Max results.")
-def search(query: str, group: str | None, limit: int):
+def search(query: str, group: str | None, source: str | None, shared_set: str | None, limit: int):
     """Search commands by keyword (FTS)."""
     db = get_db()
-    commands = db.search_commands(query, group_name=group, limit=limit)
+    commands = db.search_commands(query, group_name=group, source=source, shared_set=shared_set, limit=limit)
     ranked = rank_commands(commands)
     if not ranked:
         click.echo(f"No commands matching '{query}'.")
@@ -177,7 +181,7 @@ def sync(history: str | None):
 @click.option("--dir", "directory", type=click.Path(exists=True), default=None,
               help="Directory to scan (default: ~/bin).")
 def scan(directory: str | None):
-    """Import ~/bin/ script metadata."""
+    """Import script metadata from ~/bin/ (supports #@ Description/Usage headers)."""
     from .scanner import scan_directory
 
     db = get_db()
@@ -205,28 +209,144 @@ def evolve(top_k: int):
     click.echo("\nRun 'copa fix' to add descriptions.")
 
 
+# --- configure ---
+
+@cli.command()
+def configure():
+    """Configure Copa settings (LLM backend for description generation)."""
+    db = get_db()
+
+    current_backend = db.get_meta("llm_backend") or "claude"
+    click.echo(f"Current LLM backend: {current_backend}")
+
+    backend = click.prompt(
+        "Which LLM backend?",
+        type=click.Choice(["claude", "ollama"]),
+        default=current_backend,
+    )
+
+    if backend == "ollama":
+        from .llm import check_ollama_available, check_ollama_model
+
+        ready, msg = check_ollama_available()
+        if not ready:
+            click.echo(click.style(f"  Warning: {msg}", fg="yellow"))
+            if not click.confirm("Continue anyway?"):
+                return
+
+        current_model = db.get_meta("ollama_model") or "llama3.2:3b"
+        model = click.prompt("Ollama model", default=current_model)
+
+        if ready:
+            available, models = check_ollama_model(model)
+            if not available:
+                if models:
+                    click.echo(f"  Model '{model}' not found. Available: {', '.join(models)}")
+                else:
+                    click.echo(f"  Model '{model}' not found.")
+                if click.confirm(f"  Pull '{model}' now?"):
+                    import subprocess
+                    click.echo(f"  Pulling {model}...")
+                    subprocess.run(["ollama", "pull", model])
+
+        db.set_meta("ollama_model", model)
+
+    db.set_meta("llm_backend", backend)
+    click.echo(click.style(f"Saved: backend={backend}", fg="green"))
+
+
+# --- describe ---
+
+@cli.command()
+@click.argument("cmd_id", type=int)
+def describe(cmd_id: int):
+    """Generate or update a description for a command using LLM."""
+    from .llm import generate_description
+
+    db = get_db()
+    cmd = db.get_command(cmd_id)
+    if not cmd:
+        click.echo(f"Command {cmd_id} not found.", err=True)
+        sys.exit(1)
+
+    click.echo(f"  [{cmd.id}] {click.style(cmd.command, bold=True)}")
+    if cmd.description:
+        click.echo(f"  Current: {cmd.description}")
+
+    backend = db.get_meta("llm_backend") or "claude"
+    model = db.get_meta("ollama_model") or "llama3.2:3b"
+
+    click.echo(click.style(f"  Generating ({backend})...", dim=True), nl=False)
+    suggestion = generate_description(cmd.command, backend=backend, model=model)
+
+    if suggestion:
+        click.echo(f"\r  Suggestion: {click.style(suggestion, fg='cyan')}  ")
+        desc = input(f"  Description [{suggestion}]: ").strip()
+        if desc.lower() == "q":
+            return
+        if not desc:
+            desc = suggestion
+    else:
+        click.echo("\r  (no suggestion generated)         ")
+        desc = input("  Description: ").strip()
+        if not desc:
+            return
+
+    db.update_description(cmd.id, desc)
+    click.echo(click.style("  saved", fg="green"))
+
+
 # --- fix ---
 
 @cli.command()
-def fix():
-    """Interactively add descriptions to undescribed commands."""
+@click.option("--auto", "auto_desc", is_flag=True, help="Use LLM to generate description suggestions.")
+def fix(auto_desc: bool):
+    """Interactively add descriptions to undescribed commands.
+
+    Use --auto to have an LLM generate suggestions (configure backend with 'copa configure').
+    """
     db = get_db()
     commands = db.list_commands(needs_description=True, limit=100)
     if not commands:
         click.echo("All commands have descriptions.")
         return
 
-    click.echo(f"{len(commands)} commands need descriptions. (Enter to skip, 'q' to quit)\n")
+    if auto_desc:
+        from .llm import generate_description
+
+        backend = db.get_meta("llm_backend") or "claude"
+        model = db.get_meta("ollama_model") or "llama3.2:3b"
+        click.echo(f"Using LLM backend: {backend}")
+        click.echo(f"{len(commands)} commands need descriptions. (Enter=accept, type to edit, 'q' to quit)\n")
+    else:
+        click.echo(f"{len(commands)} commands need descriptions. (Enter to skip, 'q' to quit)\n")
+
     fixed = 0
     for cmd in commands:
         click.echo(f"  [{cmd.id}] {click.style(cmd.command, bold=True)}")
-        desc = input("  Description: ").strip()
-        if desc.lower() == "q":
-            break
+
+        suggestion = ""
+        if auto_desc:
+            click.echo(click.style("  Generating...", dim=True), nl=False)
+            suggestion = generate_description(cmd.command, backend=backend, model=model) or ""
+            # Clear the "Generating..." text
+            click.echo(f"\r  Suggestion: {click.style(suggestion, fg='cyan')}" if suggestion else "\r  (no suggestion generated)")
+
+        if auto_desc and suggestion:
+            desc = input(f"  Description [{suggestion}]: ").strip()
+            if desc.lower() == "q":
+                break
+            if not desc:
+                desc = suggestion  # Enter accepts the suggestion
+        else:
+            desc = input("  Description: ").strip()
+            if desc.lower() == "q":
+                break
+
         if desc:
             db.update_description(cmd.id, desc)
             fixed += 1
-            click.echo(click.style(f"  ✓ saved", fg="green"))
+            click.echo(click.style("  saved", fg="green"))
         click.echo()
 
     click.echo(f"Fixed {fixed} descriptions.")
@@ -427,14 +547,15 @@ def init():
 
 
 @cli.command("fzf-list", hidden=True)
-@click.option("--mode", default="all", type=click.Choice(["all", "frequent", "recent", "group"]))
+@click.option("--mode", default="all", type=click.Choice(["all", "frequent", "recent", "group", "set"]))
 @click.option("--group", default=None)
-def fzf_list_cmd(mode: str, group: str | None):
+@click.option("--set", "shared_set", default=None, help="Filter by shared set.")
+def fzf_list_cmd(mode: str, group: str | None, shared_set: str | None):
     """Output formatted lines for fzf."""
     from .fzf import fzf_list
 
     db = get_db()
-    lines = fzf_list(db, mode=mode, group=group)
+    lines = fzf_list(db, mode=mode, group=group, shared_set=shared_set)
     for line in lines:
         click.echo(line)
 
