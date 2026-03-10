@@ -117,6 +117,7 @@ def import_shared_set(db: Database, copa_file: CopaFile, source_path: str | None
             continue
         description = cmd_data.get("description", "")
         tags = cmd_data.get("tags", [])
+        flags = cmd_data.get("flags")
 
         db.add_command(
             command=command,
@@ -125,6 +126,7 @@ def import_shared_set(db: Database, copa_file: CopaFile, source_path: str | None
             group_name=copa_file.name,
             shared_set=copa_file.name,
             tags=tags,
+            flags=flags if flags else None,
         )
         count += 1
 

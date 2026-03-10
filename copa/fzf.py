@@ -28,10 +28,11 @@ _RESET = "\033[0m"
 def format_lines(commands: list[Command]) -> list[str]:
     """Format commands for fzf display with aligned columns.
 
-    Layout: {id} ┃ {command (padded)} ┃ {pin}{group_badge}  {freq}
-    Field 1 (ID) is hidden by fzf --with-nth '2..'.
+    Layout: {id} ┃ {command (padded)} ┃ {pin}{group_badge}  {freq} ┃ {search_text}
+    Field 1 (ID) is hidden by fzf --with-nth '2..3'.
     Field 2 (command) is extracted by cut -d'┃' -f2 in copa.zsh.
     Field 3 (metadata) is visible but not extracted.
+    Field 4 (description+flags) is hidden but searchable by fzf.
     """
     if not commands:
         return []
@@ -69,7 +70,12 @@ def format_lines(commands: list[Command]) -> list[str]:
 
         meta_field = f" {pin}{grp}  {freq}"
 
-        lines.append(f"{id_field} ┃{cmd_field}┃{meta_field}")
+        # Field 4: hidden searchable text (description, usage, purpose, flags)
+        search_text = cmd.description or ""
+        if cmd.flags:
+            search_text += " " + " ".join(f"{k} {v}" for k, v in cmd.flags.items())
+
+        lines.append(f"{id_field} ┃{cmd_field}┃{meta_field}┃ {search_text}")
 
     return lines
 
@@ -110,6 +116,13 @@ def format_preview(cmd: Command) -> str:
         lines.append(f"Usage:       {parsed['usage']}")
     if parsed["purpose"]:
         lines.append(f"Purpose:     {parsed['purpose']}")
+
+    if cmd.flags:
+        lines.append("")
+        lines.append("Flags:")
+        for flag, desc in cmd.flags.items():
+            lines.append(f"  {flag:20s} {desc}")
+        lines.append("")
 
     lines.append(f"Score:       {cmd.score:.1f}")
     lines.append(f"Frequency:   {cmd.frequency}")
@@ -181,7 +194,7 @@ def run_fzf(db: Database, mode: str = "all", group: str | None = None) -> str | 
                 "fzf",
                 "--ansi",
                 "--delimiter", "┃",
-                "--with-nth", "2..",
+                "--with-nth", "2..3",
                 "--preview", preview_cmd,
                 "--preview-window", "right:40%:wrap",
                 "--header", f"Copa [{mode}] — Tab to cycle modes",

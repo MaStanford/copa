@@ -23,7 +23,8 @@ eval "$(copa _fzf-config 2>/dev/null)" || {
   _COPA_EXPECT='ctrl-v,ctrl-o,ctrl-x,ctrl-t,ctrl-a,ctrl-/'
   _COPA_DESCRIBE_KEY='ctrl-d'
   _COPA_GROUP_KEY='ctrl-g'
-  _COPA_HEADER='Copa | ^R:cycle | ^V:& | ^O:2>&1 | ^X:| | ^T:> | ^A:&& | ^/:quiet | ^G:grp | ^D:desc'
+  _COPA_FLAGS_KEY='ctrl-f'
+  _COPA_HEADER='Copa | ^R:cycle | ^V:& | ^O:2>&1 | ^X:| | ^T:> | ^A:&& | ^/:quiet | ^G:grp | ^D:desc | ^F:flag'
   typeset -gA _COPA_SUFFIXES
   _COPA_SUFFIXES[ctrl-v]=' &'
   _COPA_SUFFIXES[ctrl-o]=' 2>&1'
@@ -66,7 +67,7 @@ _copa_fzf_widget() {
   output=$("$copa_bin" fzf-list --mode "$mode" | \
     fzf --ansi \
         --delimiter '┃' \
-        --with-nth '2..' \
+        --with-nth '2..3' \
         --preview "$copa_bin _preview {1}" \
         --preview-window 'right:40%:wrap' \
         --header "$_COPA_HEADER" \
@@ -74,8 +75,9 @@ _copa_fzf_widget() {
         --height '80%' \
         --layout reverse \
         --expect "$_COPA_EXPECT" \
-        --bind "${_COPA_DESCRIBE_KEY}:execute($copa_bin describe {1})" \
-        --bind "${_COPA_GROUP_KEY}:execute($copa_bin _set-group {1})" \
+        --bind "${_COPA_DESCRIBE_KEY}:execute($copa_bin describe {1})+refresh-preview" \
+        --bind "${_COPA_GROUP_KEY}:execute($copa_bin _set-group {1})+reload($copa_bin fzf-list)+refresh-preview" \
+        --bind "${_COPA_FLAGS_KEY}:execute($copa_bin _set-flags {1})+reload($copa_bin fzf-list)+refresh-preview" \
         --bind 'ctrl-r:transform:
           if [[ $FZF_PROMPT == "copa> " ]]; then
             echo "reload('"$copa_bin"' fzf-list --mode frequent)+change-prompt(frequent> )"

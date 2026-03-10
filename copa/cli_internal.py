@@ -9,6 +9,47 @@ import click
 from .cli_common import complete_group, complete_shared_set, get_db
 
 
+def _open_tty():
+    """Open /dev/tty with echo enabled for use inside fzf execute() bindings.
+
+    fzf disables terminal echo before launching execute() subcommands.
+    We re-enable it so users can see what they type.
+
+    Returns (tty_file, original_termios) or (None, None) on failure.
+    """
+    try:
+        tty = open("/dev/tty", "r+")
+    except OSError:
+        return None, None
+
+    old_attrs = None
+    try:
+        import termios
+        fd = tty.fileno()
+        old_attrs = termios.tcgetattr(fd)
+        new_attrs = termios.tcgetattr(fd)
+        # Enable echo (ECHO) and canonical mode (ICANON) for line-buffered input
+        new_attrs[3] |= termios.ECHO | termios.ICANON
+        termios.tcsetattr(fd, termios.TCSANOW, new_attrs)
+    except (ImportError, termios.error):
+        pass  # termios not available (non-Unix) — proceed without echo fix
+
+    return tty, old_attrs
+
+
+def _close_tty(tty, old_attrs):
+    """Restore terminal attributes and close the tty file."""
+    if tty is None:
+        return
+    if old_attrs is not None:
+        try:
+            import termios
+            termios.tcsetattr(tty.fileno(), termios.TCSANOW, old_attrs)
+        except (ImportError, termios.error):
+            pass
+    tty.close()
+
+
 @click.command("_record", hidden=True)
 @click.argument("command")
 def record(command: str):
@@ -64,12 +105,7 @@ def set_group(cmd_id: int):
         click.echo(f"Command {cmd_id} not found.", err=True)
         sys.exit(1)
 
-    # Use /dev/tty directly so output is visible and input echoes keystrokes
-    # when running inside fzf's execute() binding
-    try:
-        tty = open("/dev/tty", "r+")
-    except OSError:
-        tty = None
+    tty, old_attrs = _open_tty()
 
     def tty_write(msg: str):
         if tty:
@@ -96,13 +132,11 @@ def set_group(cmd_id: int):
     try:
         name = tty_read("  Group name (empty=clear, q=cancel): ").strip()
     except (EOFError, KeyboardInterrupt):
-        if tty:
-            tty.close()
+        _close_tty(tty, old_attrs)
         return
 
     if name.lower() == "q":
-        if tty:
-            tty.close()
+        _close_tty(tty, old_attrs)
         return
 
     group_name = name if name else None
@@ -115,8 +149,70 @@ def set_group(cmd_id: int):
             f"  ✗ command already exists in group '{group_name}'", fg="red"
         ))
 
-    if tty:
-        tty.close()
+    _close_tty(tty, old_attrs)
+
+
+@click.command("_set-flags", hidden=True)
+@click.argument("cmd_id", type=int)
+def set_flags(cmd_id: int):
+    """Add or edit flags for a command (called by fzf execute binding)."""
+    db = get_db()
+    cmd = db.get_command(cmd_id)
+    if not cmd:
+        click.echo(f"Command {cmd_id} not found.", err=True)
+        sys.exit(1)
+
+    tty, old_attrs = _open_tty()
+
+    def tty_write(msg: str):
+        if tty:
+            tty.write(msg + "\n")
+            tty.flush()
+        else:
+            click.echo(msg)
+
+    def tty_read(prompt: str) -> str:
+        if tty:
+            tty.write(prompt)
+            tty.flush()
+            return tty.readline().rstrip("\n")
+        return input(prompt)
+
+    tty_write(f"  Command: {cmd.command}")
+
+    flags = dict(cmd.flags)  # copy existing flags
+
+    if flags:
+        tty_write("  Current flags:")
+        for flag, desc in flags.items():
+            tty_write(f"    {flag}: {desc}")
+    else:
+        tty_write("  No flags yet.")
+
+    tty_write("  Add flags (empty flag name = done, q = cancel):")
+
+    try:
+        while True:
+            flag_name = tty_read("  Flag name: ").strip()
+            if not flag_name:
+                break
+            if flag_name.lower() == "q":
+                _close_tty(tty, old_attrs)
+                return
+            flag_desc = tty_read("  Description: ").strip()
+            flags[flag_name] = flag_desc
+            tty_write(click.style(f"    + {flag_name}: {flag_desc}", fg="green"))
+    except (EOFError, KeyboardInterrupt):
+        _close_tty(tty, old_attrs)
+        return
+
+    if flags != cmd.flags:
+        db.update_flags(cmd.id, flags)
+        tty_write(click.style(f"  → {len(flags)} flag(s) saved", fg="green"))
+    else:
+        tty_write("  No changes.")
+
+    _close_tty(tty, old_attrs)
 
 
 @click.command("_complete-word", hidden=True)
@@ -206,6 +302,7 @@ def register(cli):
     cli.add_command(fzf_list_cmd)
     cli.add_command(preview)
     cli.add_command(set_group)
+    cli.add_command(set_flags)
     cli.add_command(complete_word)
     cli.add_command(mcp_cmd)
     cli.add_command(completion)

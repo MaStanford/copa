@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import time
 from dataclasses import dataclass, field
 
@@ -22,11 +23,12 @@ class Command:
     is_pinned: bool = False
     needs_description: bool = False
     tags: list[str] = field(default_factory=list)
+    flags: dict[str, str] = field(default_factory=dict)
     score: float = 0.0  # computed at query time
 
     @classmethod
     def from_row(cls, row: dict) -> Command:
-        return cls(
+        cmd = cls(
             id=row["id"],
             command=row["command"],
             description=row.get("description", ""),
@@ -39,13 +41,23 @@ class Command:
             is_pinned=bool(row.get("is_pinned", 0)),
             needs_description=bool(row.get("needs_description", 0)),
         )
+        flags_raw = row.get("flags", "")
+        if flags_raw:
+            try:
+                cmd.flags = json.loads(flags_raw)
+            except (json.JSONDecodeError, TypeError):
+                cmd.flags = {}
+        return cmd
 
     def to_dict(self) -> dict:
-        return {
+        d = {
             "command": self.command,
             "description": self.description,
             "tags": self.tags,
         }
+        if self.flags:
+            d["flags"] = self.flags
+        return d
 
 
 @dataclass

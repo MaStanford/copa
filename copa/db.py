@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import sqlite3
 import time
@@ -48,26 +49,26 @@ CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
 
 FTS_SQL = """\
 CREATE VIRTUAL TABLE IF NOT EXISTS commands_fts USING fts5(
-    command, description, content='commands', content_rowid='id'
+    command, description, flags, content='commands', content_rowid='id'
 );
 """
 
 FTS_TRIGGERS = """\
 CREATE TRIGGER IF NOT EXISTS commands_ai AFTER INSERT ON commands BEGIN
-    INSERT INTO commands_fts(rowid, command, description)
-    VALUES (new.id, new.command, new.description);
+    INSERT INTO commands_fts(rowid, command, description, flags)
+    VALUES (new.id, new.command, new.description, new.flags);
 END;
 
 CREATE TRIGGER IF NOT EXISTS commands_ad AFTER DELETE ON commands BEGIN
-    INSERT INTO commands_fts(commands_fts, rowid, command, description)
-    VALUES ('delete', old.id, old.command, old.description);
+    INSERT INTO commands_fts(commands_fts, rowid, command, description, flags)
+    VALUES ('delete', old.id, old.command, old.description, old.flags);
 END;
 
 CREATE TRIGGER IF NOT EXISTS commands_au AFTER UPDATE ON commands BEGIN
-    INSERT INTO commands_fts(commands_fts, rowid, command, description)
-    VALUES ('delete', old.id, old.command, old.description);
-    INSERT INTO commands_fts(rowid, command, description)
-    VALUES (new.id, new.command, new.description);
+    INSERT INTO commands_fts(commands_fts, rowid, command, description, flags)
+    VALUES ('delete', old.id, old.command, old.description, old.flags);
+    INSERT INTO commands_fts(rowid, command, description, flags)
+    VALUES (new.id, new.command, new.description, new.flags);
 END;
 """
 
@@ -98,8 +99,29 @@ class Database:
         """Create all tables and FTS indexes."""
         cur = self.conn.cursor()
         cur.executescript(SCHEMA_SQL)
+
+        # Migration: add flags column if it doesn't exist yet
+        try:
+            self.conn.execute("ALTER TABLE commands ADD COLUMN flags TEXT DEFAULT ''")
+            self.conn.commit()
+        except sqlite3.OperationalError:
+            pass  # column already exists
+
+        # Rebuild FTS to pick up schema changes (drop old table/triggers first)
+        cur.executescript("""
+            DROP TRIGGER IF EXISTS commands_ai;
+            DROP TRIGGER IF EXISTS commands_ad;
+            DROP TRIGGER IF EXISTS commands_au;
+            DROP TABLE IF EXISTS commands_fts;
+        """)
         cur.executescript(FTS_SQL)
         cur.executescript(FTS_TRIGGERS)
+
+        # Rebuild FTS content from existing data
+        cur.execute("""
+            INSERT INTO commands_fts(rowid, command, description, flags)
+            SELECT id, command, description, COALESCE(flags, '') FROM commands
+        """)
         self.conn.commit()
 
     # --- Commands CRUD ---
@@ -113,18 +135,20 @@ class Database:
         shared_set: str | None = None,
         tags: list[str] | None = None,
         needs_description: bool = False,
+        flags: dict[str, str] | None = None,
     ) -> int:
         """Add or update a command. Returns the command id."""
         now = time.time()
+        flags_json = json.dumps(flags) if flags else ""
         cur = self.conn.cursor()
         try:
             cur.execute(
                 """INSERT INTO commands
                    (command, description, frequency, last_used, first_added,
-                    source, group_name, shared_set, needs_description)
-                   VALUES (?, ?, 1, ?, ?, ?, ?, ?, ?)""",
+                    source, group_name, shared_set, needs_description, flags)
+                   VALUES (?, ?, 1, ?, ?, ?, ?, ?, ?, ?)""",
                 (command, description, now, now, source, group_name,
-                 shared_set, int(needs_description)),
+                 shared_set, int(needs_description), flags_json),
             )
             cmd_id = cur.lastrowid
         except sqlite3.IntegrityError:
@@ -201,6 +225,15 @@ class Database:
         cur.execute(
             "UPDATE commands SET description = ?, needs_description = 0 WHERE id = ?",
             (description, cmd_id),
+        )
+        self.conn.commit()
+
+    def update_flags(self, cmd_id: int, flags: dict[str, str]):
+        """Update the flags JSON for a command."""
+        cur = self.conn.cursor()
+        cur.execute(
+            "UPDATE commands SET flags = ? WHERE id = ?",
+            (json.dumps(flags), cmd_id),
         )
         self.conn.commit()
 

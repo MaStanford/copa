@@ -28,20 +28,35 @@ def cli():
 @click.option("-g", "--group", default=None, help="Group name.", shell_complete=complete_group)
 @click.option("-t", "--tag", multiple=True, help="Tags (can be repeated).")
 @click.option("-p", "--pin", is_flag=True, help="Pin this command.")
-def add(command: str, description: str, group: str | None, tag: tuple[str, ...], pin: bool):
+@click.option("-f", "--flag", multiple=True,
+              help="Flag docs as 'flag: description' (repeatable).")
+def add(command: str, description: str, group: str | None, tag: tuple[str, ...],
+        pin: bool, flag: tuple[str, ...]):
     """Save a command with optional description and group."""
     db = get_db()
+
+    # Parse --flag options into a dict
+    flags: dict[str, str] = {}
+    for f in flag:
+        parts = f.split(":", 1)
+        flag_name = parts[0].strip()
+        flag_desc = parts[1].strip() if len(parts) > 1 else ""
+        flags[flag_name] = flag_desc
+
     cmd_id = db.add_command(
         command=command,
         description=description,
         group_name=group,
         tags=list(tag) if tag else None,
+        flags=flags if flags else None,
     )
     if pin:
         db.pin_command(cmd_id, True)
     click.echo(f"Added [{cmd_id}]: {command}")
     if description:
         click.echo(f"  → {description}")
+    if flags:
+        click.echo(f"  flags: {len(flags)} documented")
     if group:
         click.echo(f"  group: {group}")
 

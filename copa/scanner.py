@@ -12,6 +12,7 @@ from .db import Database
 PROTOCOL_DESC = re.compile(r"^#@\s*[Dd]escription:\s*(.+)$")
 PROTOCOL_USAGE = re.compile(r"^#@\s*[Uu]sage:\s*(.+)$")
 PROTOCOL_PURPOSE = re.compile(r"^#@\s*[Pp]urpose:\s*(.+)$")
+PROTOCOL_FLAG = re.compile(r"^#@\s*[Ff]lag:\s*(.+)$")
 
 # --- Pass 2: Legacy fallback patterns ---
 LEGACY_PATTERNS = [
@@ -23,27 +24,30 @@ LEGACY_PATTERNS = [
 ]
 
 
-def extract_description(path: Path) -> str:
-    """Extract a description from a script file's header comments.
+def extract_description(path: Path) -> tuple[str, dict[str, str]]:
+    """Extract a description and flags from a script file's header comments.
 
     Uses a two-pass approach:
       Pass 1 — #@ protocol headers (highest priority)
       Pass 2 — Legacy comment patterns (fallback)
+
+    Returns (description_string, flags_dict).
     """
     try:
         with open(path, "r", errors="replace") as f:
             lines = []
             for i, line in enumerate(f):
-                if i >= 30:  # Check first 30 lines for protocol headers
+                if i >= 50:  # Check first 50 lines for protocol headers
                     break
                 lines.append(line.rstrip())
     except OSError:
-        return ""
+        return "", {}
 
     # --- Pass 1: Protocol headers ---
     description = ""
     usage = ""
     purpose = ""
+    flags: dict[str, str] = {}
 
     for line in lines:
         m = PROTOCOL_DESC.match(line)
@@ -58,6 +62,15 @@ def extract_description(path: Path) -> str:
         if m:
             purpose = m.group(1).strip()
             continue
+        m = PROTOCOL_FLAG.match(line)
+        if m:
+            flag_text = m.group(1).strip()
+            # "#@ Flag: -w, --wipe: Wipe userdata" → {"-w, --wipe": "Wipe userdata"}
+            parts = flag_text.split(":", 1)
+            flag_name = parts[0].strip()
+            flag_desc = parts[1].strip() if len(parts) > 1 else ""
+            flags[flag_name] = flag_desc
+            continue
 
     if description:
         parts = [description]
@@ -65,7 +78,7 @@ def extract_description(path: Path) -> str:
             parts.append(f"Usage: {usage}")
         if purpose:
             parts.append(f"Purpose: {purpose}")
-        return " | ".join(parts)
+        return " | ".join(parts), flags
 
     # --- Pass 2: Legacy fallbacks ---
     for line in lines:
@@ -74,9 +87,9 @@ def extract_description(path: Path) -> str:
             if m:
                 desc = m.group(1).strip()
                 if desc and not desc.startswith("!") and len(desc) > 5:
-                    return desc
+                    return desc, flags
 
-    return ""
+    return "", flags
 
 
 def _scan_single_directory(db: Database, directory: Path) -> int:
@@ -106,12 +119,13 @@ def _scan_single_directory(db: Database, directory: Path) -> int:
             if name.startswith(".") or name.endswith((".md", ".txt", ".log")):
                 continue
 
-            description = extract_description(entry)
+            description, flags = extract_description(entry)
             if not db.command_exists(name):
                 db.add_command(
                     command=name,
                     description=description,
                     source="scan",
+                    flags=flags if flags else None,
                 )
                 added += 1
 
