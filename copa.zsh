@@ -6,6 +6,7 @@
 #   2. Replaces Ctrl+R with an fzf command palette that searches across
 #      command text AND descriptions — not just raw history
 #   3. Ctrl+R cycles modes inside fzf: all → frequent → recent → all
+#   4. Composition keys append shell operators (|, &&, &, etc.) to selected commands
 
 # Ensure copa is available
 if ! command -v copa &>/dev/null; then
@@ -15,6 +16,21 @@ if ! command -v copa &>/dev/null; then
     return
   fi
 fi
+
+# --- Load keybinding config (runs once at shell startup) ---
+eval "$(copa _fzf-config 2>/dev/null)" || {
+  # Fallback defaults if copa _fzf-config fails
+  _COPA_EXPECT='ctrl-g,ctrl-o,ctrl-x,ctrl-t,ctrl-v,ctrl-/'
+  _COPA_DESCRIBE_KEY='ctrl-d'
+  _COPA_HEADER='Copa | ^R:cycle | ^G:& | ^O:2>&1 | ^X:| | ^T:> | ^V:&& | ^/:quiet | ^D:desc'
+  typeset -gA _COPA_SUFFIXES
+  _COPA_SUFFIXES[ctrl-g]=' &'
+  _COPA_SUFFIXES[ctrl-o]=' 2>&1'
+  _COPA_SUFFIXES[ctrl-x]=' | '
+  _COPA_SUFFIXES[ctrl-t]=' > '
+  _COPA_SUFFIXES[ctrl-v]=' && '
+  _COPA_SUFFIXES[ctrl-/]=' 2>/dev/null'
+}
 
 # --- precmd hook: record last command ---
 _copa_precmd() {
@@ -34,6 +50,7 @@ add-zsh-hook precmd _copa_precmd
 # Replaces default zsh reverse-search. fzf searches all visible fields:
 # command text, description, group badges, shared-set names, and frequency.
 # Selected command is placed into the prompt without executing.
+# Composition keys (configured via copa _fzf-config) append shell operators.
 # Requires fzf: brew install fzf
 _copa_fzf_widget() {
   if ! command -v fzf &>/dev/null; then
@@ -42,19 +59,21 @@ _copa_fzf_widget() {
   fi
 
   local mode="all"
-  local selected
+  local output
   local copa_bin="${commands[copa]:-copa}"
 
-  selected=$("$copa_bin" fzf-list --mode "$mode" | \
+  output=$("$copa_bin" fzf-list --mode "$mode" | \
     fzf --ansi \
         --delimiter '┃' \
         --with-nth '2..' \
         --preview "$copa_bin _preview {1}" \
         --preview-window 'right:40%:wrap' \
-        --header 'Copa — Ctrl+R to cycle: all → frequent → recent' \
+        --header "$_COPA_HEADER" \
         --prompt 'copa> ' \
         --height '80%' \
         --layout reverse \
+        --expect "$_COPA_EXPECT" \
+        --bind "${_COPA_DESCRIBE_KEY}:execute($copa_bin describe {1})" \
         --bind 'ctrl-r:transform:
           if [[ $FZF_PROMPT == "copa> " ]]; then
             echo "reload('"$copa_bin"' fzf-list --mode frequent)+change-prompt(frequent> )"
@@ -66,11 +85,17 @@ _copa_fzf_widget() {
         --bind 'enter:accept' \
   )
 
-  if [[ -n "$selected" ]]; then
-    # Extract command text (second field after ┃)
-    local cmd
-    cmd=$(echo "$selected" | cut -d'┃' -f2 | sed 's/^ *//;s/ *$//')
-    LBUFFER="$cmd"
+  if [[ -n "$output" ]]; then
+    # --expect output: line 1 = key pressed (empty for Enter), line 2+ = selected item
+    local key selected cmd suffix
+    key=$(echo "$output" | head -1)
+    selected=$(echo "$output" | tail -n +2)
+
+    if [[ -n "$selected" ]]; then
+      cmd=$(echo "$selected" | cut -d'┃' -f2 | sed 's/^ *//;s/ *$//')
+      suffix="${_COPA_SUFFIXES[$key]}"
+      LBUFFER="${cmd}${suffix}"
+    fi
   fi
 
   zle reset-prompt
@@ -78,3 +103,10 @@ _copa_fzf_widget() {
 
 zle -N _copa_fzf_widget
 bindkey '^R' _copa_fzf_widget
+
+# --- Tab completion ---
+# Ensure zsh completion system is available, then register Copa completions.
+if ! (( $+functions[compdef] )); then
+  autoload -Uz compinit && compinit -i -C
+fi
+eval "$(copa completion zsh)"

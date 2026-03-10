@@ -316,6 +316,14 @@ class Database:
         )
         return [row["group_name"] for row in cur.fetchall()]
 
+    def get_sources(self) -> list[str]:
+        """Get all unique source values."""
+        cur = self.conn.cursor()
+        cur.execute(
+            "SELECT DISTINCT source FROM commands WHERE source IS NOT NULL ORDER BY source"
+        )
+        return [row["source"] for row in cur.fetchall()]
+
     def get_stats(self) -> dict:
         """Get usage statistics."""
         cur = self.conn.cursor()

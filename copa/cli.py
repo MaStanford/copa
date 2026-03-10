@@ -11,6 +11,7 @@ from datetime import datetime
 from pathlib import Path
 
 import click
+from click.shell_completion import CompletionItem
 
 from .db import Database
 from .models import Command, CopaFile
@@ -21,6 +22,35 @@ def get_db() -> Database:
     db = Database()
     db.init_db()
     return db
+
+
+# --- Shell completion helpers ---
+
+def complete_group(ctx, param, incomplete):
+    """Complete group names from the database."""
+    try:
+        db = get_db()
+        return [CompletionItem(g) for g in db.get_groups() if g.startswith(incomplete)]
+    except Exception:
+        return []
+
+
+def complete_shared_set(ctx, param, incomplete):
+    """Complete shared set names from the database."""
+    try:
+        db = get_db()
+        return [CompletionItem(s.name) for s in db.get_shared_sets() if s.name.startswith(incomplete)]
+    except Exception:
+        return []
+
+
+def complete_source(ctx, param, incomplete):
+    """Complete source values from the database."""
+    try:
+        db = get_db()
+        return [CompletionItem(s) for s in db.get_sources() if s.startswith(incomplete)]
+    except Exception:
+        return []
 
 
 # --- Main group ---
@@ -37,7 +67,7 @@ def cli():
 @cli.command()
 @click.argument("command")
 @click.option("-d", "--description", default="", help="Description of the command.")
-@click.option("-g", "--group", default=None, help="Group name.")
+@click.option("-g", "--group", default=None, help="Group name.", shell_complete=complete_group)
 @click.option("-t", "--tag", multiple=True, help="Tags (can be repeated).")
 @click.option("-p", "--pin", is_flag=True, help="Pin this command.")
 def add(command: str, description: str, group: str | None, tag: tuple[str, ...], pin: bool):
@@ -61,10 +91,10 @@ def add(command: str, description: str, group: str | None, tag: tuple[str, ...],
 # --- list ---
 
 @cli.command("list")
-@click.option("-g", "--group", default=None, help="Filter by group.")
+@click.option("-g", "--group", default=None, help="Filter by group.", shell_complete=complete_group)
 @click.option("-n", "--limit", default=20, help="Number of commands to show.")
-@click.option("-s", "--source", default=None, help="Filter by source.")
-@click.option("--set", "shared_set", default=None, help="Filter by shared set.")
+@click.option("-s", "--source", default=None, help="Filter by source.", shell_complete=complete_source)
+@click.option("--set", "shared_set", default=None, help="Filter by shared set.", shell_complete=complete_shared_set)
 @click.option("--needs-desc", is_flag=True, help="Show only commands needing description.")
 def list_cmd(group: str | None, limit: int, source: str | None, shared_set: str | None, needs_desc: bool):
     """List commands ranked by score."""
@@ -104,9 +134,9 @@ def list_cmd(group: str | None, limit: int, source: str | None, shared_set: str 
 
 @cli.command()
 @click.argument("query")
-@click.option("-g", "--group", default=None, help="Filter by group.")
-@click.option("-s", "--source", default=None, help="Filter by source.")
-@click.option("--set", "shared_set", default=None, help="Filter by shared set.")
+@click.option("-g", "--group", default=None, help="Filter by group.", shell_complete=complete_group)
+@click.option("-s", "--source", default=None, help="Filter by source.", shell_complete=complete_source)
+@click.option("--set", "shared_set", default=None, help="Filter by shared set.", shell_complete=complete_shared_set)
 @click.option("-n", "--limit", default=20, help="Max results.")
 def search(query: str, group: str | None, source: str | None, shared_set: str | None, limit: int):
     """Search commands by keyword (FTS)."""
@@ -390,7 +420,7 @@ def fix(auto_desc: bool):
 
 @cli.command("import")
 @click.argument("file", type=click.Path(exists=True))
-@click.option("-g", "--group", default=None, help="Group name for imported commands.")
+@click.option("-g", "--group", default=None, help="Group name for imported commands.", shell_complete=complete_group)
 def import_cmd(file: str, group: str | None):
     """Import commands from a markdown file."""
     path = Path(file)
@@ -582,8 +612,8 @@ def init():
 
 @cli.command("fzf-list", hidden=True)
 @click.option("--mode", default="all", type=click.Choice(["all", "frequent", "recent", "group", "set"]))
-@click.option("--group", default=None)
-@click.option("--set", "shared_set", default=None, help="Filter by shared set.")
+@click.option("--group", default=None, shell_complete=complete_group)
+@click.option("--set", "shared_set", default=None, help="Filter by shared set.", shell_complete=complete_shared_set)
 def fzf_list_cmd(mode: str, group: str | None, shared_set: str | None):
     """Output formatted lines for fzf."""
     from .fzf import fzf_list
@@ -615,6 +645,28 @@ def mcp_cmd():
     """Run the MCP server (stdio transport)."""
     from .mcp_server import main
     main()
+
+
+@cli.command(hidden=True)
+@click.argument("shell", type=click.Choice(["zsh", "bash", "fish"]))
+def completion(shell: str):
+    """Output shell completion script."""
+    import os
+    import subprocess
+
+    env = os.environ.copy()
+    env["_COPA_COMPLETE"] = f"{shell}_source"
+    result = subprocess.run(["copa"], env=env, capture_output=True, text=True)
+    click.echo(result.stdout)
+
+
+@cli.command("_fzf-config", hidden=True)
+def fzf_config_cmd():
+    """Output zsh keybinding config for fzf."""
+    from .config import emit_zsh_config, load_config
+
+    config = load_config()
+    click.echo(emit_zsh_config(config))
 
 
 if __name__ == "__main__":

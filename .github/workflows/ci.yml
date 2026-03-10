@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Copa
+        run: pip install -e .[ollama]
+
+      - name: CLI smoke test
+        run: |
+          copa --version
+          copa --help
+
+      - name: Functional smoke test
+        run: |
+          copa _init
+          copa add "echo hello" -d "test command"
+          copa list
+          copa search hello
+          copa stats
+
+      - name: Import smoke test
+        run: |
+          python -c "
+          from copa.scoring import compute_score
+          from copa.db import get_db
+          from copa.models import Command
+          from copa.cli import cli
+          print('All imports OK')
+          "
