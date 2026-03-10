@@ -194,8 +194,12 @@ def scan(directory: str | None):
 
 @cli.command()
 @click.option("-k", "--top-k", default=20, help="Number of top commands to add.")
-def evolve(top_k: int):
-    """Auto-add top-K frequent history commands."""
+@click.option("--auto", "auto_desc", is_flag=True, help="Auto-generate descriptions with LLM.")
+def evolve(top_k: int, auto_desc: bool):
+    """Auto-add top-K frequent history commands.
+
+    Use --auto to generate descriptions for added commands in one pass.
+    """
     from .evolve import evolve as do_evolve
 
     db = get_db()
@@ -203,10 +207,40 @@ def evolve(top_k: int):
     if not added:
         click.echo("No new commands to evolve.")
         return
-    click.echo(f"Added {len(added)} commands (needs_description=1):")
+    click.echo(f"Added {len(added)} commands:")
     for cmd in added:
         click.echo(f"  + {cmd}")
-    click.echo("\nRun 'copa fix' to add descriptions.")
+
+    if auto_desc:
+        from .llm import generate_description
+
+        backend = db.get_meta("llm_backend") or "claude"
+        model = db.get_meta("ollama_model") or "llama3.2:3b"
+        click.echo(f"\nGenerating descriptions ({backend})...")
+
+        described = 0
+        failed = 0
+        for cmd_text in added:
+            # Look up the command we just added
+            results = db.search_commands(cmd_text, limit=1)
+            cmd_obj = next((c for c in results if c.command == cmd_text), None)
+            if not cmd_obj:
+                failed += 1
+                continue
+
+            desc = generate_description(cmd_text, backend=backend, model=model)
+            if desc:
+                db.update_description(cmd_obj.id, desc)
+                described += 1
+                click.echo(f"  [{cmd_obj.id}] {click.style(desc, fg='cyan')}")
+            else:
+                failed += 1
+
+        needs_review = len(added) - described
+        click.echo(f"\nAdded {len(added)} commands ({described} with auto-descriptions"
+                    f"{f', {needs_review} need manual review' if needs_review else ''}).")
+    else:
+        click.echo(f"\nRun 'copa fix' to add descriptions.")
 
 
 # --- configure ---

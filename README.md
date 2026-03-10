@@ -4,9 +4,9 @@ Copa tracks the commands you run, ranks them by frequency and recency, and gives
 
 ## Features
 
-- **Smart ranking** — commands scored by `2*log(1+freq) + 5*0.5^(age/7d)`, so frequent *and* recent commands float to the top
+- **Smart ranking** — commands scored by `2*log(1+freq) + 8*0.5^(age/3d)`, so frequent *and* recent commands float to the top
 - **FTS search** — full-text search across commands and their descriptions
-- **fzf integration** — Ctrl+R opens a fuzzy-searchable command palette with preview pane
+- **fzf integration** — Ctrl+R opens a fuzzy-searchable command palette with preview pane; searches across commands *and* their descriptions
 - **Auto-evolution** — `copa evolve` finds your most-used commands from zsh history and promotes them
 - **LLM descriptions** — `copa fix --auto` uses Claude or ollama to generate descriptions for undescribed commands
 - **Script protocol** — `#@ Description:` / `#@ Usage:` headers in your scripts are auto-detected by `copa scan`
@@ -18,10 +18,24 @@ Copa tracks the commands you run, ranks them by frequency and recency, and gives
 
 ## Install
 
-```bash
-# Requirements: Python 3.12+, fzf
-brew install fzf  # if not already installed
+### Prerequisites
 
+- **Python 3.12+**
+- **fzf** — required for Ctrl+R command palette
+
+```bash
+# macOS
+brew install fzf
+
+# Linux (apt)
+sudo apt install fzf
+
+# or see https://github.com/junegunn/fzf#installation
+```
+
+### Install Copa
+
+```bash
 pip install copa
 # or from source:
 git clone https://github.com/MaStanford/copa.git
@@ -32,17 +46,58 @@ pip install -e .
 pip install copa[ollama]
 ```
 
-Add shell integration to your `.zshrc`:
+### Shell integration (required)
+
+Add this line to your `~/.zshrc`:
 
 ```bash
 source /path/to/copa/copa.zsh
 ```
+
+Then restart your shell or run `source ~/.zshrc`. This does two things:
+
+1. **Records every command you run** — a `precmd` hook silently calls `copa _record` in the background after each command, building up frequency and recency data with zero latency impact.
+2. **Replaces Ctrl+R** — the default zsh reverse-history-search is replaced with Copa's fzf-powered command palette (see below).
 
 Initialize the database:
 
 ```bash
 copa _init
 ```
+
+## Ctrl+R — fzf Command Palette
+
+Once shell integration is sourced, pressing **Ctrl+R** opens an fzf-powered command palette instead of the default zsh reverse search. This is Copa's primary interface.
+
+### What you see
+
+Copa pipes every tracked command into fzf in this format:
+
+```
+command text ┃ description ┃ [group] freq×N
+```
+
+**fzf searches across all visible fields** — the command text, the description, group names, and shared-set badges. This means if you added a description like "Enable Bluetooth" to an `adb shell cmd bluetooth_manager enable` command, typing "bluetooth" in fzf will match on both the command and the description.
+
+This is the key difference from plain zsh Ctrl+R: you're not just searching raw history text, you're searching annotated, described, ranked commands.
+
+### Modes
+
+The header shows available modes. Press **Ctrl+R** again while fzf is open to cycle:
+
+| Mode | Sort order | Use case |
+|------|-----------|----------|
+| `all` | Score (frequency + recency) | Default — best commands float to top |
+| `frequent` | Frequency only | Find your most-used commands |
+| `recent` | Last used time | Find commands you ran recently |
+
+### Preview pane
+
+The right side shows a detail card for the highlighted command: full description, score breakdown, frequency, last used, source, group, shared set, and tags.
+
+### Result
+
+Selecting a command places it directly into your shell prompt (without executing it), so you can review or edit before pressing Enter.
 
 ## Quick Start
 
@@ -61,6 +116,9 @@ copa search bluetooth
 
 # Auto-promote frequent commands from history
 copa evolve -k 20
+
+# Auto-promote and generate descriptions in one pass
+copa evolve -k 20 --auto
 
 # Generate descriptions with LLM
 copa fix --auto
@@ -97,6 +155,9 @@ copa evolve -k 20
 
 # Then generate descriptions with LLM suggestions
 copa fix --auto
+
+# Or do both in one step
+copa evolve -k 20 --auto
 ```
 
 With `--auto`, each command gets an LLM-generated suggestion:
@@ -259,7 +320,7 @@ Available MCP tools:
 | `copa stats` | Usage statistics |
 | `copa sync` | Import from zsh history |
 | `copa scan [--dir ~/bin]` | Import script metadata |
-| `copa evolve [-k 20]` | Auto-add frequent commands |
+| `copa evolve [-k 20] [--auto]` | Auto-add frequent commands (with optional LLM descriptions) |
 | `copa fix [--auto]` | Add missing descriptions (with optional LLM) |
 | `copa describe ID` | Generate description for one command |
 | `copa configure` | Set LLM backend (claude/ollama) |
@@ -272,10 +333,10 @@ Available MCP tools:
 ## How Scoring Works
 
 ```
-score = 2.0 * log(1 + frequency) + 5.0 * 0.5^(age_seconds / 7_days)
+score = 2.0 * log(1 + frequency) + 8.0 * 0.5^(age_seconds / 3_days)
 ```
 
-Pinned commands get a +1000 bonus. This means a command used 10 times today scores higher than one used 100 times last month, which is usually what you want.
+Pinned commands get a +1000 bonus. The 3-day half-life means commands used in the last few days are strongly favored — a command used today scores ~8.0 recency, after 3 days ~4.0, after a week ~1.6.
 
 ## License
 

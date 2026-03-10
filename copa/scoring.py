@@ -9,13 +9,13 @@ from .models import Command
 
 # Tuning constants
 FREQ_WEIGHT = 2.0
-RECENCY_WEIGHT = 5.0
-HALF_LIFE_SECONDS = 7 * 24 * 3600  # 7 days
+RECENCY_WEIGHT = 8.0
+HALF_LIFE_SECONDS = 3 * 24 * 3600  # 3 days
 PIN_BONUS = 1000.0
 
 
 def compute_score(cmd: Command, now: float | None = None) -> float:
-    """Compute hybrid score: 2.0*log(1+freq) + 5.0*0.5^(age/7days).
+    """Compute hybrid score: 2.0*log(1+freq) + 8.0*0.5^(age/3days).
 
     Pinned commands get +1000 bonus.
     """

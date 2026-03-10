@@ -1,5 +1,11 @@
 # Copa — shell integration for zsh
-# Source this file in your .zshrc:  source ~/workspace/copa/copa.zsh
+# Source this file in your .zshrc:  source /path/to/copa/copa.zsh
+#
+# What this does:
+#   1. Records every command you run (precmd hook, background, zero latency)
+#   2. Replaces Ctrl+R with an fzf command palette that searches across
+#      command text AND descriptions — not just raw history
+#   3. Ctrl+R cycles modes inside fzf: all → frequent → recent → all
 
 # Ensure copa is available
 if ! command -v copa &>/dev/null; then
@@ -25,7 +31,16 @@ autoload -Uz add-zsh-hook
 add-zsh-hook precmd _copa_precmd
 
 # --- Ctrl+R: fzf-powered command palette ---
+# Replaces default zsh reverse-search. fzf searches all visible fields:
+# command text, description, group badges, shared-set names, and frequency.
+# Selected command is placed into the prompt without executing.
+# Requires fzf: brew install fzf
 _copa_fzf_widget() {
+  if ! command -v fzf &>/dev/null; then
+    zle -M "Copa: fzf not found. Install with: brew install fzf"
+    return 1
+  fi
+
   local mode="all"
   local selected
   local copa_bin="${commands[copa]:-copa}"
@@ -40,7 +55,14 @@ _copa_fzf_widget() {
         --prompt 'copa> ' \
         --height '80%' \
         --layout reverse \
-        --bind 'ctrl-r:reload('"$copa_bin"' fzf-list --mode frequent)+change-prompt(frequent> )' \
+        --bind 'ctrl-r:transform:
+          if [[ $FZF_PROMPT == "copa> " ]]; then
+            echo "reload('"$copa_bin"' fzf-list --mode frequent)+change-prompt(frequent> )"
+          elif [[ $FZF_PROMPT == "frequent> " ]]; then
+            echo "reload('"$copa_bin"' fzf-list --mode recent)+change-prompt(recent> )"
+          else
+            echo "reload('"$copa_bin"' fzf-list --mode all)+change-prompt(copa> )"
+          fi' \
         --bind 'enter:accept' \
   )
 
