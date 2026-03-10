@@ -215,6 +215,15 @@ def set_flags(cmd_id: int):
     _close_tty(tty, old_attrs)
 
 
+@click.command("_list-groups", hidden=True)
+def list_groups():
+    """Output group names for fzf group picker."""
+    db = get_db()
+    click.echo("(all)")
+    for g in db.get_groups():
+        click.echo(g)
+
+
 @click.command("_complete-word", hidden=True)
 @click.argument("words", nargs=-1)
 def complete_word(words):
@@ -303,6 +312,7 @@ def register(cli):
     cli.add_command(preview)
     cli.add_command(set_group)
     cli.add_command(set_flags)
+    cli.add_command(list_groups)
     cli.add_command(complete_word)
     cli.add_command(mcp_cmd)
     cli.add_command(completion)

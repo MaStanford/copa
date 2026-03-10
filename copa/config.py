@@ -16,6 +16,7 @@ DEFAULT_KEYS: dict[str, str] = {
     "describe": "ctrl-d",
     "group": "ctrl-g",
     "flags": "ctrl-f",
+    "filter_group": "ctrl-s",
 }
 
 # Action name -> shell suffix appended to the command
@@ -39,6 +40,7 @@ LABELS: dict[str, str] = {
     "group": "grp",
     "describe": "desc",
     "flags": "flag",
+    "filter_group": "scope",
 }
 
 # Keys that cannot be overridden by user config
@@ -119,10 +121,11 @@ def emit_zsh_config(config: dict[str, str]) -> str:
     """
     lines: list[str] = []
 
-    # Separate describe, group, and flags keys from expect keys (composition keys)
+    # Separate describe, group, flags, and filter_group keys from expect keys (composition keys)
     describe_key = config.get("describe", DEFAULT_KEYS["describe"])
     group_key = config.get("group", DEFAULT_KEYS["group"])
     flags_key = config.get("flags", DEFAULT_KEYS["flags"])
+    filter_group_key = config.get("filter_group", DEFAULT_KEYS["filter_group"])
     expect_keys = [
         config[action]
         for action in ("background", "merge_output", "pipe", "redirect", "chain", "suppress")
@@ -133,10 +136,11 @@ def emit_zsh_config(config: dict[str, str]) -> str:
     lines.append(f"_COPA_DESCRIBE_KEY='{describe_key}'")
     lines.append(f"_COPA_GROUP_KEY='{group_key}'")
     lines.append(f"_COPA_FLAGS_KEY='{flags_key}'")
+    lines.append(f"_COPA_FILTER_GROUP_KEY='{filter_group_key}'")
 
     # Build header: Copa | ^R:cycle | ^G:& | ^O:2>&1 | ...
     header_parts = ["Copa", f"{_format_key_label('ctrl-r')}:cycle"]
-    for action in ("background", "merge_output", "pipe", "redirect", "chain", "suppress", "group", "describe", "flags"):
+    for action in ("background", "merge_output", "pipe", "redirect", "chain", "suppress", "group", "describe", "flags", "filter_group"):
         key = config.get(action, DEFAULT_KEYS[action])
         label = LABELS[action]
         header_parts.append(f"{_format_key_label(key)}:{label}")

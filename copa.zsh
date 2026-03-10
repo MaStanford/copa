@@ -24,7 +24,8 @@ eval "$(copa _fzf-config 2>/dev/null)" || {
   _COPA_DESCRIBE_KEY='ctrl-d'
   _COPA_GROUP_KEY='ctrl-g'
   _COPA_FLAGS_KEY='ctrl-f'
-  _COPA_HEADER='Copa | ^R:cycle | ^V:& | ^O:2>&1 | ^X:| | ^T:> | ^A:&& | ^/:quiet | ^G:grp | ^D:desc | ^F:flag'
+  _COPA_FILTER_GROUP_KEY='ctrl-s'
+  _COPA_HEADER='Copa | ^R:cycle | ^V:& | ^O:2>&1 | ^X:| | ^T:> | ^A:&& | ^/:quiet | ^G:grp | ^D:desc | ^F:flag | ^S:scope'
   typeset -gA _COPA_SUFFIXES
   _COPA_SUFFIXES[ctrl-v]=' &'
   _COPA_SUFFIXES[ctrl-o]=' 2>&1'
@@ -78,6 +79,13 @@ _copa_fzf_widget() {
         --bind "${_COPA_DESCRIBE_KEY}:execute($copa_bin describe {1})+refresh-preview" \
         --bind "${_COPA_GROUP_KEY}:execute($copa_bin _set-group {1})+reload($copa_bin fzf-list)+refresh-preview" \
         --bind "${_COPA_FLAGS_KEY}:execute($copa_bin _set-flags {1})+reload($copa_bin fzf-list)+refresh-preview" \
+        --bind "${_COPA_FILTER_GROUP_KEY}:transform:
+          group=\$(${copa_bin} _list-groups | fzf --height 40% --layout reverse --prompt 'group> ' --header 'Select group (ESC=cancel)');
+          if [[ \$group == '(all)' ]]; then
+            echo \"reload(${copa_bin} fzf-list --mode all)+change-prompt(copa> )\"
+          elif [[ -n \$group ]]; then
+            echo \"reload(${copa_bin} fzf-list --mode group --group \$group)+change-prompt(copa [\$group]> )\"
+          fi" \
         --bind 'ctrl-r:transform:
           if [[ $FZF_PROMPT == "copa> " ]]; then
             echo "reload('"$copa_bin"' fzf-list --mode frequent)+change-prompt(frequent> )"
