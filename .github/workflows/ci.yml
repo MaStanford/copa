@@ -39,7 +39,7 @@ jobs:
         run: |
           python -c "
           from copa.scoring import compute_score
-          from copa.db import get_db
+          from copa.cli_common import get_db
           from copa.models import Command
           from copa.cli import cli
           print('All imports OK')
