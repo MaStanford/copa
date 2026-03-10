@@ -74,11 +74,43 @@ def format_lines(commands: list[Command]) -> list[str]:
     return lines
 
 
+def _parse_description(desc: str) -> dict[str, str]:
+    """Parse a structured description string into its components.
+
+    Handles both plain descriptions and structured format:
+      "Description text | Usage: X | Purpose: Y"
+
+    Returns dict with keys: description, usage, purpose.
+    """
+    result = {"description": "", "usage": "", "purpose": ""}
+    if not desc:
+        return result
+
+    # Split on " | " and check for known prefixes
+    parts = [p.strip() for p in desc.split(" | ")]
+    for part in parts:
+        if part.startswith("Usage: "):
+            result["usage"] = part[7:]
+        elif part.startswith("Purpose: "):
+            result["purpose"] = part[9:]
+        elif not result["description"]:
+            result["description"] = part
+
+    return result
+
+
 def format_preview(cmd: Command) -> str:
     """Format a rich preview for fzf preview pane."""
     lines = []
     lines.append(f"Command:     {cmd.command}")
-    lines.append(f"Description: {cmd.description or '(none)'}")
+
+    parsed = _parse_description(cmd.description)
+    lines.append(f"Description: {parsed['description'] or '(none)'}")
+    if parsed["usage"]:
+        lines.append(f"Usage:       {parsed['usage']}")
+    if parsed["purpose"]:
+        lines.append(f"Purpose:     {parsed['purpose']}")
+
     lines.append(f"Score:       {cmd.score:.1f}")
     lines.append(f"Frequency:   {cmd.frequency}")
     if cmd.last_used > 0:

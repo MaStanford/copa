@@ -11,6 +11,7 @@ from .db import Database
 # --- Pass 1: #@ Protocol headers (highest priority) ---
 PROTOCOL_DESC = re.compile(r"^#@\s*[Dd]escription:\s*(.+)$")
 PROTOCOL_USAGE = re.compile(r"^#@\s*[Uu]sage:\s*(.+)$")
+PROTOCOL_PURPOSE = re.compile(r"^#@\s*[Pp]urpose:\s*(.+)$")
 
 # --- Pass 2: Legacy fallback patterns ---
 LEGACY_PATTERNS = [
@@ -42,6 +43,7 @@ def extract_description(path: Path) -> str:
     # --- Pass 1: Protocol headers ---
     description = ""
     usage = ""
+    purpose = ""
 
     for line in lines:
         m = PROTOCOL_DESC.match(line)
@@ -52,11 +54,18 @@ def extract_description(path: Path) -> str:
         if m:
             usage = m.group(1).strip()
             continue
+        m = PROTOCOL_PURPOSE.match(line)
+        if m:
+            purpose = m.group(1).strip()
+            continue
 
     if description:
+        parts = [description]
         if usage:
-            return f"{description} | Usage: {usage}"
-        return description
+            parts.append(f"Usage: {usage}")
+        if purpose:
+            parts.append(f"Purpose: {purpose}")
+        return " | ".join(parts)
 
     # --- Pass 2: Legacy fallbacks ---
     for line in lines:

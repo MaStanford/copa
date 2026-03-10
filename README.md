@@ -12,7 +12,7 @@ Copa tracks the commands you run, ranks them by frequency and recency, and gives
 - **Tab completion** — Copa supplements zsh's tab completion for *any* command using your command history database
 - **Auto-evolution** — `copa evolve` finds your most-used commands from zsh history and promotes them
 - **LLM descriptions** — `copa fix --auto` uses Claude or ollama to generate descriptions for undescribed commands
-- **Script protocol** — `#@ Description:` / `#@ Usage:` headers in your scripts are auto-detected by `copa scan` across all `$PATH` directories
+- **Script protocol** — `#@ Description:` / `#@ Usage:` / `#@ Purpose:` headers in your scripts are auto-detected by `copa scan` across all `$PATH` directories
 - **Groups & Ctrl+G** — organize commands by project, device, or workflow; assign groups inline from the fzf palette with Ctrl+G
 - **Sharing & `copa create`** — export/import command sets as `.copa` JSON files; `copa create` scaffolds a `.copa` file from an existing group
 - **Set filtering** — scope list, search, and fzf to a specific shared set with `--set`
@@ -248,12 +248,15 @@ Copa recognizes `#@` headers in script files (checked in the first 30 lines):
 #!/bin/bash
 #@ Description: Flash AOSP build to connected device
 #@ Usage: flash_all.py <build-dir> -w [--skip firmware vendor_boot ...]
+#@ Purpose: Streamline the device flashing workflow
 ```
 
-When scanned, this produces:
+When scanned, Description, Usage, and Purpose are stored together and displayed as separate fields in the Ctrl+R preview pane:
 
 ```
-Flash AOSP build to connected device | Usage: flash_all.py <build-dir> -w [--skip firmware vendor_boot ...]
+Description: Flash AOSP build to connected device
+Usage:       flash_all.py <build-dir> -w [--skip firmware vendor_boot ...]
+Purpose:     Streamline the device flashing workflow
 ```
 
 ### Supported headers
@@ -261,7 +264,8 @@ Flash AOSP build to connected device | Usage: flash_all.py <build-dir> -w [--ski
 | Header | Effect |
 |--------|--------|
 | `#@ Description: <text>` | Sets the command description (highest priority) |
-| `#@ Usage: <text>` | Appended to description as `\| Usage: <text>` |
+| `#@ Usage: <text>` | Usage / invocation syntax |
+| `#@ Purpose: <text>` | Why the script exists / when to use it |
 
 Scripts without `#@` headers still work — Copa falls back to legacy patterns (`# Description:`, `# Purpose:`, Python docstrings, generic comments).
 
