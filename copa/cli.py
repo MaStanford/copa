@@ -757,6 +757,57 @@ def set_group(cmd_id: int):
         tty.close()
 
 
+@cli.command("_complete-word", hidden=True)
+@click.argument("words", nargs=-1)
+def complete_word(words):
+    """Return tab-completion candidates for a partial command line."""
+    if not words:
+        return
+
+    db = get_db()
+
+    # All words except the last form the prefix; the last word is the incomplete token
+    if len(words) == 1:
+        # Single word: return unique first words from all commands matching the token
+        token = words[0]
+        cur = db.conn.cursor()
+        cur.execute(
+            "SELECT command, frequency FROM commands ORDER BY frequency DESC"
+        )
+        seen: set[str] = set()
+        for row in cur.fetchall():
+            first_word = row["command"].split()[0] if row["command"].split() else ""
+            if first_word and first_word.startswith(token) and first_word not in seen:
+                seen.add(first_word)
+                click.echo(first_word)
+        return
+
+    prefix_words = list(words[:-1])
+    token = words[-1]
+
+    # Build a LIKE pattern from the prefix words
+    # Escape SQL LIKE wildcards in prefix
+    prefix = " ".join(prefix_words)
+    escaped_prefix = prefix.replace("%", "\\%").replace("_", "\\_")
+    like_pattern = escaped_prefix + " %"
+
+    cur = db.conn.cursor()
+    cur.execute(
+        "SELECT command, frequency FROM commands WHERE command LIKE ? ESCAPE '\\' ORDER BY frequency DESC",
+        (like_pattern,),
+    )
+
+    word_pos = len(prefix_words)
+    seen: set[str] = set()
+    for row in cur.fetchall():
+        parts = row["command"].split()
+        if len(parts) > word_pos:
+            candidate = parts[word_pos]
+            if candidate.startswith(token) and candidate not in seen:
+                seen.add(candidate)
+                click.echo(candidate)
+
+
 @cli.command("mcp", hidden=True)
 def mcp_cmd():
     """Run the MCP server (stdio transport)."""

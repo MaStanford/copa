@@ -9,11 +9,12 @@ Copa tracks the commands you run, ranks them by frequency and recency, and gives
 - **Smart ranking** — commands scored by `2*log(1+freq) + 8*0.5^(age/3d)`, so frequent *and* recent commands float to the top
 - **FTS search** — full-text search across commands and their descriptions
 - **fzf integration** — Ctrl+R opens a fuzzy-searchable command palette with preview pane; searches across commands *and* their descriptions
+- **Tab completion** — Copa supplements zsh's tab completion for *any* command using your command history database
 - **Auto-evolution** — `copa evolve` finds your most-used commands from zsh history and promotes them
 - **LLM descriptions** — `copa fix --auto` uses Claude or ollama to generate descriptions for undescribed commands
 - **Script protocol** — `#@ Description:` / `#@ Usage:` headers in your scripts are auto-detected by `copa scan`
-- **Groups** — organize commands by project, device, or workflow
-- **Sharing** — export/import command sets as `.copa` JSON files for team sharing
+- **Groups & Ctrl+G** — organize commands by project, device, or workflow; assign groups inline from the fzf palette with Ctrl+G
+- **Sharing & `copa create`** — export/import command sets as `.copa` JSON files; `copa create` scaffolds a `.copa` file from an existing group
 - **Set filtering** — scope list, search, and fzf to a specific shared set with `--set`
 - **MCP server** — expose your commands to Claude Code (or any MCP client)
 - **Zero latency** — precmd hook records usage in the background
@@ -56,10 +57,11 @@ Add this line to your `~/.zshrc`:
 source /path/to/copa/copa.zsh
 ```
 
-Then restart your shell or run `source ~/.zshrc`. This does two things:
+Then restart your shell or run `source ~/.zshrc`. This does three things:
 
 1. **Records every command you run** — a `precmd` hook silently calls `copa _record` in the background after each command, building up frequency and recency data with zero latency impact.
 2. **Replaces Ctrl+R** — the default zsh reverse-history-search is replaced with Copa's fzf-powered command palette (see below).
+3. **Supplements tab completion** — Copa registers as a fallback completer so that any command gets completion candidates from your Copa database (see [Tab Completion](#tab-completion) below).
 
 Initialize the database:
 
@@ -73,13 +75,15 @@ Once shell integration is sourced, pressing **Ctrl+R** opens an fzf-powered comm
 
 ### What you see
 
-Copa pipes every tracked command into fzf in this format:
+Copa pipes every tracked command into fzf with aligned columns:
 
 ```
-command text ┃ description ┃ [group] freq×N
+ command text (padded)  ┃  [group]  freq×N
 ```
 
-**fzf searches across all visible fields** — the command text, the description, group names, and shared-set badges. This means if you added a description like "Enable Bluetooth" to an `adb shell cmd bluetooth_manager enable` command, typing "bluetooth" in fzf will match on both the command and the description.
+The left panel shows the command text. The right panel shows metadata: a pin indicator, group badge (dim magenta), and frequency count (dim). Descriptions are not shown in the list — they appear in the preview pane and are still searchable by fzf.
+
+**fzf searches across all visible fields** — the command text, group names, and shared-set badges. If you added a description like "Enable Bluetooth" to an `adb shell cmd bluetooth_manager enable` command, typing "bluetooth" in fzf will match on both the command and the description (via the preview/search index).
 
 This is the key difference from plain zsh Ctrl+R: you're not just searching raw history text, you're searching annotated, described, ranked commands.
 
@@ -93,6 +97,24 @@ The header shows available modes. Press **Ctrl+R** again while fzf is open to cy
 | `frequent` | Frequency only | Find your most-used commands |
 | `recent` | Last used time | Find commands you ran recently |
 
+### Keybindings
+
+While the fzf palette is open, these keys are available:
+
+| Key | Action | Effect |
+|-----|--------|--------|
+| **Ctrl+R** | Cycle mode | all → frequent → recent → all |
+| **Ctrl+V** | Append `&` | Run selected command in background |
+| **Ctrl+O** | Append `2>&1` | Merge stderr into stdout |
+| **Ctrl+X** | Append `\|` | Pipe into next command |
+| **Ctrl+T** | Append `>` | Redirect output |
+| **Ctrl+A** | Append `&&` | Chain with next command |
+| **Ctrl+/** | Append `2>/dev/null` | Suppress stderr |
+| **Ctrl+G** | Set group | Assign or change the group for the highlighted command |
+| **Ctrl+D** | Describe | Generate/edit a description for the highlighted command |
+
+Keybindings are configurable via `~/.copa/config.toml`. See the `[keys]` section.
+
 ### Preview pane
 
 The right side shows a detail card for the highlighted command: full description, score breakdown, frequency, last used, source, group, shared set, and tags.
@@ -100,6 +122,37 @@ The right side shows a detail card for the highlighted command: full description
 ### Result
 
 Selecting a command places it directly into your shell prompt (without executing it), so you can review or edit before pressing Enter.
+
+## Tab Completion
+
+Copa supplements zsh's built-in tab completion for **any** command — not just Copa's own CLI. Once `copa.zsh` is sourced, Copa registers as a fallback completer in zsh's completion system.
+
+### How it works
+
+When you press Tab, zsh runs its normal completers first. If Copa's fallback also fires, it queries the Copa database for commands matching what you've typed so far and suggests the next word(s):
+
+```
+$ adb shell dump<TAB>
+→ dumpsys  dumpstate
+```
+
+Copa looks at your tracked commands starting with `adb shell dump` and extracts the next word from each match. Candidates are deduplicated and ordered by frequency.
+
+### Examples
+
+```bash
+# Complete subcommands for adb
+adb <TAB>
+→ shell  devices  logcat  push  pull  ...
+
+# Complete arguments deeper in the command
+adb shell cmd bluetooth_manager <TAB>
+→ enable  disable  ...
+```
+
+This works automatically once `copa.zsh` is sourced — no extra setup needed. The more commands you use (and track with Copa), the better the completions get.
+
+Copa's own CLI completions (`copa li<TAB>` → `list`) continue to work as before via Click's built-in completion.
 
 ## Quick Start
 
@@ -109,6 +162,9 @@ copa sync
 
 # Add a command manually
 copa add "adb shell cmd bluetooth_manager enable" -d "Enable Bluetooth" -g bluetooth
+
+# Create a .copa file from a group (or scaffold an empty one)
+copa create -g bluetooth
 
 # List top commands by score
 copa list
@@ -221,6 +277,10 @@ copa scan --dir /path/to/scripts
 Export a group as a `.copa` file:
 
 ```bash
+# Using copa create (recommended — creates a .copa file you can edit)
+copa create -g bluetooth
+
+# Or using share export (direct export)
 copa share export bluetooth -o bluetooth.copa
 ```
 
@@ -316,6 +376,7 @@ Available MCP tools:
 | Command | Purpose |
 |---------|---------|
 | `copa add "cmd" -d "desc" -g group` | Save a command |
+| `copa create -g group [-o file]` | Create a .copa file from a group |
 | `copa list [-g group] [-s source] [--set name]` | List by score |
 | `copa search "query" [-g group] [-s source] [--set name]` | FTS search |
 | `copa remove ID` | Remove a command |

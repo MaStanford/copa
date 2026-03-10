@@ -112,3 +112,21 @@ if ! (( $+functions[compdef] )); then
   autoload -Uz compinit && compinit -i -C
 fi
 eval "$(copa completion zsh)"
+
+# --- Supplemental tab completion from Copa database ---
+# Registers as a fallback completer so that any command (e.g. adb <TAB>)
+# gets completion candidates from Copa's command history.
+_copa_history_complete() {
+    local -a results
+    results=("${(@f)$(copa _complete-word "${(@)words[1,CURRENT]}" 2>/dev/null)}")
+    (( ${#results} )) && compadd -- "${results[@]}"
+}
+
+# Append to existing completers without clobbering user config
+() {
+    local -a cur
+    zstyle -g cur ':completion:*' completer 2>/dev/null
+    if (( ! ${cur[(Ie)_copa_history_complete]} )); then
+        zstyle ':completion:*' completer ${cur:-_complete} _copa_history_complete
+    fi
+}
