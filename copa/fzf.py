@@ -18,28 +18,60 @@ def has_fzf() -> bool:
     return shutil.which("fzf") is not None
 
 
-def format_line(cmd: Command) -> str:
-    """Format a command for fzf display.
+# ANSI escape codes
+_DIM = "\033[2m"
+_MAGENTA = "\033[35m"
+_YELLOW = "\033[33m"
+_RESET = "\033[0m"
 
-    Format: ID ┃ command ┃ description ┃ [group] ┃ freq×N
+
+def format_lines(commands: list[Command]) -> list[str]:
+    """Format commands for fzf display with aligned columns.
+
+    Layout: {id} ┃ {command (padded)} ┃ {pin}{group_badge}  {freq}
+    Field 1 (ID) is hidden by fzf --with-nth '2..'.
+    Field 2 (command) is extracted by cut -d'┃' -f2 in copa.zsh.
+    Field 3 (metadata) is visible but not extracted.
     """
-    parts = [f"{cmd.id:>5}"]
-    parts.append(cmd.command)
+    if not commands:
+        return []
 
-    desc = cmd.description[:60] if cmd.description else ""
-    parts.append(desc)
+    # Compute column widths from the full list
+    max_cmd = min(max(len(c.command) for c in commands), 60)
+    max_grp = max(
+        (len(f"[{c.group_name}]") for c in commands if c.group_name),
+        default=0,
+    )
 
-    meta = []
-    if cmd.group_name:
-        meta.append(f"[{cmd.group_name}]")
-    if cmd.shared_set:
-        meta.append(f"[shared:{cmd.shared_set}]")
-    if cmd.is_pinned:
-        meta.append("[pinned]")
-    meta.append(f"{cmd.frequency}×")
-    parts.append(" ".join(meta))
+    lines = []
+    for cmd in commands:
+        # Field 1: hidden ID
+        id_field = f"{cmd.id:>5}"
 
-    return " ┃ ".join(parts)
+        # Field 2: command text, padded for column alignment
+        cmd_text = cmd.command
+        if len(cmd_text) > 60:
+            cmd_text = cmd_text[:57] + "..."
+        cmd_field = f" {cmd_text:<{max_cmd}} "
+
+        # Field 3: metadata — pin indicator, group badge, frequency
+        pin = f"{_YELLOW}*{_RESET} " if cmd.is_pinned else "  "
+
+        if cmd.group_name:
+            badge = f"[{cmd.group_name}]"
+            padded_badge = f"{badge:>{max_grp}}"
+            grp = f"{_DIM}{_MAGENTA}{padded_badge}{_RESET}"
+        else:
+            grp = " " * max_grp
+
+        freq_str = f"{cmd.frequency}×"
+        freq = f"{_DIM}{freq_str:>6}{_RESET}"
+
+        meta_field = f" {pin}{grp}  {freq}"
+
+        lines.append(f"{id_field} ┃{cmd_field}┃{meta_field}")
+
+    return lines
 
 
 def format_preview(cmd: Command) -> str:
@@ -91,7 +123,7 @@ def fzf_list(
     elif mode == "frequent":
         ranked.sort(key=lambda c: c.frequency, reverse=True)
 
-    return [format_line(cmd) for cmd in ranked]
+    return format_lines(ranked)
 
 
 def run_fzf(db: Database, mode: str = "all", group: str | None = None) -> str | None:
