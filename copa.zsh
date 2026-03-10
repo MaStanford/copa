@@ -20,15 +20,16 @@ fi
 # --- Load keybinding config (runs once at shell startup) ---
 eval "$(copa _fzf-config 2>/dev/null)" || {
   # Fallback defaults if copa _fzf-config fails
-  _COPA_EXPECT='ctrl-g,ctrl-o,ctrl-x,ctrl-t,ctrl-v,ctrl-/'
+  _COPA_EXPECT='ctrl-v,ctrl-o,ctrl-x,ctrl-t,ctrl-a,ctrl-/'
   _COPA_DESCRIBE_KEY='ctrl-d'
-  _COPA_HEADER='Copa | ^R:cycle | ^G:& | ^O:2>&1 | ^X:| | ^T:> | ^V:&& | ^/:quiet | ^D:desc'
+  _COPA_GROUP_KEY='ctrl-g'
+  _COPA_HEADER='Copa | ^R:cycle | ^V:& | ^O:2>&1 | ^X:| | ^T:> | ^A:&& | ^/:quiet | ^G:grp | ^D:desc'
   typeset -gA _COPA_SUFFIXES
-  _COPA_SUFFIXES[ctrl-g]=' &'
+  _COPA_SUFFIXES[ctrl-v]=' &'
   _COPA_SUFFIXES[ctrl-o]=' 2>&1'
   _COPA_SUFFIXES[ctrl-x]=' | '
   _COPA_SUFFIXES[ctrl-t]=' > '
-  _COPA_SUFFIXES[ctrl-v]=' && '
+  _COPA_SUFFIXES[ctrl-a]=' && '
   _COPA_SUFFIXES[ctrl-/]=' 2>/dev/null'
 }
 
@@ -74,6 +75,7 @@ _copa_fzf_widget() {
         --layout reverse \
         --expect "$_COPA_EXPECT" \
         --bind "${_COPA_DESCRIBE_KEY}:execute($copa_bin describe {1})" \
+        --bind "${_COPA_GROUP_KEY}:execute($copa_bin _set-group {1})" \
         --bind 'ctrl-r:transform:
           if [[ $FZF_PROMPT == "copa> " ]]; then
             echo "reload('"$copa_bin"' fzf-list --mode frequent)+change-prompt(frequent> )"

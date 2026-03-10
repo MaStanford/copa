@@ -88,6 +88,58 @@ def add(command: str, description: str, group: str | None, tag: tuple[str, ...],
         click.echo(f"  group: {group}")
 
 
+# --- create ---
+
+@cli.command()
+@click.option("-g", "--group", default=None, help="Group to export (prompted if omitted).", shell_complete=complete_group)
+@click.option("-o", "--output", type=click.Path(), default=None, help="Output file path (default: <group>.copa).")
+@click.option("-a", "--author", default="", help="Author name.")
+@click.option("-d", "--description", default="", help="Description of the command set.")
+def create(group: str | None, output: str | None, author: str, description: str):
+    """Create a .copa file, optionally pre-populated from an existing group."""
+    db = get_db()
+
+    if group is None:
+        groups = db.get_groups()
+        if groups:
+            click.echo("Existing groups:")
+            for g in groups:
+                click.echo(f"  - {g}")
+        group = click.prompt("Group name")
+
+    commands = db.list_commands(group_name=group, limit=10000)
+
+    if commands:
+        copa_file = CopaFile(
+            name=group,
+            description=description or f"Commands from group '{group}'",
+            author=author,
+            commands=[cmd.to_dict() for cmd in commands],
+        )
+    else:
+        copa_file = CopaFile(
+            name=group,
+            description=description or f"Commands for '{group}'",
+            author=author,
+            commands=[
+                {"command": "echo hello", "description": "Example command — replace me", "tags": []},
+            ],
+        )
+
+    if output is None:
+        output = f"{group}.copa"
+
+    path = Path(output)
+    path.write_text(json.dumps(copa_file.to_dict(), indent=2) + "\n")
+
+    count = len(copa_file.commands)
+    if commands:
+        click.echo(f"Created {path} with {count} commands from group '{group}'.")
+    else:
+        click.echo(f"Created {path} with placeholder template for group '{group}'.")
+    click.echo(f"Edit the file, then load with: copa share load {path}")
+
+
 # --- list ---
 
 @cli.command("list")
@@ -638,6 +690,71 @@ def preview(cmd_id: int):
     from .scoring import compute_score
     cmd.score = compute_score(cmd)
     click.echo(format_preview(cmd))
+
+
+@cli.command("_set-group", hidden=True)
+@click.argument("cmd_id", type=int)
+def set_group(cmd_id: int):
+    """Assign or change the group for a command (called by fzf execute binding)."""
+    db = get_db()
+    cmd = db.get_command(cmd_id)
+    if not cmd:
+        click.echo(f"Command {cmd_id} not found.", err=True)
+        sys.exit(1)
+
+    # Use /dev/tty directly so output is visible and input echoes keystrokes
+    # when running inside fzf's execute() binding
+    try:
+        tty = open("/dev/tty", "r+")
+    except OSError:
+        tty = None
+
+    def tty_write(msg: str):
+        if tty:
+            tty.write(msg + "\n")
+            tty.flush()
+        else:
+            click.echo(msg)
+
+    def tty_read(prompt: str) -> str:
+        if tty:
+            tty.write(prompt)
+            tty.flush()
+            return tty.readline().rstrip("\n")
+        return input(prompt)
+
+    tty_write(f"  Command: {cmd.command}")
+    current = cmd.group_name or "(none)"
+    tty_write(f"  Current group: {current}")
+
+    groups = db.get_groups()
+    if groups:
+        tty_write(f"  Existing groups: {', '.join(groups)}")
+
+    try:
+        name = tty_read("  Group name (empty=clear, q=cancel): ").strip()
+    except (EOFError, KeyboardInterrupt):
+        if tty:
+            tty.close()
+        return
+
+    if name.lower() == "q":
+        if tty:
+            tty.close()
+        return
+
+    group_name = name if name else None
+    ok = db.update_group(cmd.id, group_name)
+    if ok:
+        label = group_name or "(none)"
+        tty_write(click.style(f"  → group set to: {label}", fg="green"))
+    else:
+        tty_write(click.style(
+            f"  ✗ command already exists in group '{group_name}'", fg="red"
+        ))
+
+    if tty:
+        tty.close()
 
 
 @cli.command("mcp", hidden=True)

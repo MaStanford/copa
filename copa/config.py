@@ -7,13 +7,14 @@ from pathlib import Path
 
 # Action name -> default fzf key
 DEFAULT_KEYS: dict[str, str] = {
-    "background": "ctrl-g",
+    "background": "ctrl-v",
     "merge_output": "ctrl-o",
     "pipe": "ctrl-x",
     "redirect": "ctrl-t",
-    "chain": "ctrl-v",
+    "chain": "ctrl-a",
     "suppress": "ctrl-/",
     "describe": "ctrl-d",
+    "group": "ctrl-g",
 }
 
 # Action name -> shell suffix appended to the command
@@ -34,6 +35,7 @@ LABELS: dict[str, str] = {
     "redirect": ">",
     "chain": "&&",
     "suppress": "quiet",
+    "group": "grp",
     "describe": "desc",
 }
 
@@ -115,8 +117,9 @@ def emit_zsh_config(config: dict[str, str]) -> str:
     """
     lines: list[str] = []
 
-    # Separate describe key from expect keys (composition keys)
+    # Separate describe and group keys from expect keys (composition keys)
     describe_key = config.get("describe", DEFAULT_KEYS["describe"])
+    group_key = config.get("group", DEFAULT_KEYS["group"])
     expect_keys = [
         config[action]
         for action in ("background", "merge_output", "pipe", "redirect", "chain", "suppress")
@@ -125,10 +128,11 @@ def emit_zsh_config(config: dict[str, str]) -> str:
 
     lines.append(f"_COPA_EXPECT='{','.join(expect_keys)}'")
     lines.append(f"_COPA_DESCRIBE_KEY='{describe_key}'")
+    lines.append(f"_COPA_GROUP_KEY='{group_key}'")
 
     # Build header: Copa | ^R:cycle | ^G:& | ^O:2>&1 | ...
     header_parts = ["Copa", f"{_format_key_label('ctrl-r')}:cycle"]
-    for action in ("background", "merge_output", "pipe", "redirect", "chain", "suppress", "describe"):
+    for action in ("background", "merge_output", "pipe", "redirect", "chain", "suppress", "group", "describe"):
         key = config.get(action, DEFAULT_KEYS[action])
         label = LABELS[action]
         header_parts.append(f"{_format_key_label(key)}:{label}")

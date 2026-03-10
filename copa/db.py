@@ -212,6 +212,35 @@ class Database:
         )
         self.conn.commit()
 
+    def update_group(self, cmd_id: int, group_name: str | None) -> bool:
+        """Update the group_name for a command.
+
+        Returns False if the same command text already exists in the target
+        group (would violate UNIQUE(command, group_name)), True on success.
+        """
+        cur = self.conn.cursor()
+        # Get the command text for this id
+        cur.execute("SELECT command FROM commands WHERE id = ?", (cmd_id,))
+        row = cur.fetchone()
+        if not row:
+            return False
+        cmd_text = row["command"]
+
+        # Check for UNIQUE conflict: another row with same command text in target group
+        cur.execute(
+            "SELECT id FROM commands WHERE command = ? AND group_name IS ? AND id != ?",
+            (cmd_text, group_name, cmd_id),
+        )
+        if cur.fetchone():
+            return False
+
+        cur.execute(
+            "UPDATE commands SET group_name = ? WHERE id = ?",
+            (group_name, cmd_id),
+        )
+        self.conn.commit()
+        return True
+
     # --- Queries ---
 
     def list_commands(
