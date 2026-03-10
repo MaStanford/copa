@@ -12,7 +12,8 @@ Copa tracks the commands you run, ranks them by frequency and recency, and gives
 - **Tab completion** — Copa supplements zsh's tab completion for *any* command using your command history database
 - **Auto-evolution** — `copa evolve` finds your most-used commands from zsh history and promotes them
 - **LLM descriptions** — `copa fix --auto` uses Claude or ollama to generate descriptions for undescribed commands
-- **Script protocol** — `#@ Description:` / `#@ Usage:` / `#@ Purpose:` headers in your scripts are auto-detected by `copa scan` across all `$PATH` directories
+- **Script protocol** — `#@ Description:` / `#@ Usage:` / `#@ Purpose:` / `#@ Flag:` headers in your scripts are auto-detected by `copa scan` across all `$PATH` directories
+- **Flag documentation** — document command flags with descriptions; flags are searchable, visible in the preview pane, and preserved in `.copa` exports
 - **Groups & Ctrl+G** — organize commands by project, device, or workflow; assign groups inline from the fzf palette with Ctrl+G
 - **Sharing & `copa create`** — export/import command sets as `.copa` JSON files; `copa create` scaffolds a `.copa` file from an existing group
 - **Set filtering** — scope list, search, and fzf to a specific shared set with `--set`
@@ -81,9 +82,9 @@ Copa pipes every tracked command into fzf with aligned columns:
  command text (padded)  ┃  [group]  freq×N
 ```
 
-The left panel shows the command text. The right panel shows metadata: a pin indicator, group badge (dim magenta), and frequency count (dim). Descriptions are not shown in the list — they appear in the preview pane and are still searchable by fzf.
+The left panel shows the command text. The right panel shows metadata: a pin indicator, group badge (dim magenta), and frequency count (dim). Descriptions and flag documentation are not shown in the list — they appear in the preview pane but are still included as a hidden field that fzf searches. This means typing "bluetooth" in fzf will find a command whose description mentions "bluetooth" even if the command text doesn't contain it.
 
-**fzf searches across all visible fields** — the command text, group names, and shared-set badges. If you added a description like "Enable Bluetooth" to an `adb shell cmd bluetooth_manager enable` command, typing "bluetooth" in fzf will match on both the command and the description (via the preview/search index).
+**fzf searches across all fields** — the command text, group names, descriptions, and flag documentation. A hidden search field contains the full description and flag text so fzf's fuzzy matching covers everything even though only the command and metadata columns are displayed.
 
 This is the key difference from plain zsh Ctrl+R: you're not just searching raw history text, you're searching annotated, described, ranked commands.
 
@@ -112,12 +113,13 @@ While the fzf palette is open, these keys are available:
 | **Ctrl+/** | Append `2>/dev/null` | Suppress stderr |
 | **Ctrl+G** | Set group | Assign or change the group for the highlighted command |
 | **Ctrl+D** | Describe | Generate/edit a description for the highlighted command |
+| **Ctrl+F** | Edit flags | Add flag documentation to the highlighted command |
 
 Keybindings are configurable via `~/.copa/config.toml`. See the `[keys]` section.
 
 ### Preview pane
 
-The right side shows a detail card for the highlighted command: full description, score breakdown, frequency, last used, source, group, shared set, and tags.
+The right side shows a detail card for the highlighted command: full description, usage, purpose, flag documentation, score breakdown, frequency, last used, source, group, shared set, and tags.
 
 ### Result
 
@@ -162,6 +164,9 @@ copa sync
 
 # Add a command manually
 copa add "adb shell cmd bluetooth_manager enable" -d "Enable Bluetooth" -g bluetooth
+
+# Add a command with flag documentation
+copa add "flash_all" -d "Flash AOSP build" -f "--wipe: Wipe userdata" -f "-v: Verbose"
 
 # Create a .copa file from a group (or scaffold an empty one)
 copa create -g bluetooth
@@ -242,21 +247,29 @@ Generates a description for a specific command by ID. Same accept/edit flow as `
 
 ## Script Metadata Protocol
 
-Copa recognizes `#@` headers in script files (checked in the first 30 lines):
+Copa recognizes `#@` headers in script files (checked in the first 50 lines):
 
 ```bash
 #!/bin/bash
 #@ Description: Flash AOSP build to connected device
 #@ Usage: flash_all.py <build-dir> -w [--skip firmware vendor_boot ...]
 #@ Purpose: Streamline the device flashing workflow
+#@ Flag: -w, --wipe: Wipe userdata before flashing
+#@ Flag: --skip <parts>: Skip specific partitions
+#@ Flag: -n, --dry-run: Show what would be done without flashing
 ```
 
-When scanned, Description, Usage, and Purpose are stored together and displayed as separate fields in the Ctrl+R preview pane:
+When scanned, Description, Usage, Purpose, and Flags are stored and displayed in the Ctrl+R preview pane:
 
 ```
 Description: Flash AOSP build to connected device
 Usage:       flash_all.py <build-dir> -w [--skip firmware vendor_boot ...]
 Purpose:     Streamline the device flashing workflow
+
+Flags:
+  -w, --wipe           Wipe userdata before flashing
+  --skip <parts>       Skip specific partitions
+  -n, --dry-run        Show what would be done without flashing
 ```
 
 ### Supported headers
@@ -266,6 +279,7 @@ Purpose:     Streamline the device flashing workflow
 | `#@ Description: <text>` | Sets the command description (highest priority) |
 | `#@ Usage: <text>` | Usage / invocation syntax |
 | `#@ Purpose: <text>` | Why the script exists / when to use it |
+| `#@ Flag: <flag>: <description>` | Document a flag/option (repeatable) |
 
 Scripts without `#@` headers still work — Copa falls back to legacy patterns (`# Description:`, `# Purpose:`, Python docstrings, generic comments).
 
@@ -337,6 +351,15 @@ alias copa-bt='copa fzf-list --set bluetooth | fzf'
             "command": "adb shell cmd bluetooth_manager enable",
             "description": "Enable Bluetooth",
             "tags": ["bt", "android"]
+        },
+        {
+            "command": "flash_all",
+            "description": "Flash AOSP build to device",
+            "tags": ["aosp"],
+            "flags": {
+                "-w, --wipe": "Wipe userdata before flashing",
+                "--skip <parts>": "Skip specific partitions"
+            }
         }
     ]
 }
@@ -379,7 +402,7 @@ Available MCP tools:
 
 | Command | Purpose |
 |---------|---------|
-| `copa add "cmd" -d "desc" -g group` | Save a command |
+| `copa add "cmd" -d "desc" -g group -f "flag: desc"` | Save a command (with optional flags) |
 | `copa create -g group [-o file]` | Create a .copa file from a group |
 | `copa list [-g group] [-s source] [--set name]` | List by score |
 | `copa search "query" [-g group] [-s source] [--set name]` | FTS search |
