@@ -167,9 +167,9 @@ def sync(history: str | None):
 
 @cli.command()
 @click.option("--dir", "directory", type=click.Path(exists=True), default=None,
-              help="Directory to scan (default: ~/bin).")
+              help="Directory to scan (default: all $PATH directories).")
 def scan(directory: str | None):
-    """Import script metadata from ~/bin/ (supports #@ Description/Usage headers)."""
+    """Import script metadata from $PATH (supports #@ Description/Usage headers)."""
     from .scanner import scan_directory
 
     db = get_db()

@@ -1,4 +1,4 @@
-"""Scanner for ~/bin/ script metadata."""
+"""Scanner for executable script metadata across $PATH."""
 
 from __future__ import annotations
 
@@ -70,20 +70,28 @@ def extract_description(path: Path) -> str:
     return ""
 
 
-def scan_directory(db: Database, directory: Path | None = None) -> int:
-    """Scan a directory for executable scripts and add them to Copa.
+def _scan_single_directory(db: Database, directory: Path) -> int:
+    """Scan one directory for executable scripts and add them to Copa.
 
     Returns number of scripts added.
     """
-    if directory is None:
-        directory = Path.home() / "bin"
-
     if not directory.is_dir():
         return 0
 
     added = 0
-    for entry in sorted(directory.iterdir()):
-        if entry.is_file() and os.access(entry, os.X_OK):
+    try:
+        entries = sorted(directory.iterdir())
+    except PermissionError:
+        return 0
+
+    for entry in entries:
+        try:
+            is_file = entry.is_file()
+            is_exec = os.access(entry, os.X_OK)
+        except (PermissionError, OSError):
+            continue
+
+        if is_file and is_exec:
             name = entry.name
             # Skip hidden files and common non-script files
             if name.startswith(".") or name.endswith((".md", ".txt", ".log")):
@@ -95,8 +103,28 @@ def scan_directory(db: Database, directory: Path | None = None) -> int:
                     command=name,
                     description=description,
                     source="scan",
-                    group_name="bin",
                 )
                 added += 1
 
+    return added
+
+
+def scan_directory(db: Database, directory: Path | None = None) -> int:
+    """Scan directories for executable scripts and add them to Copa.
+
+    If directory is given, scans only that directory.
+    Otherwise, scans all directories on $PATH.
+
+    Returns number of scripts added.
+    """
+    if directory is not None:
+        return _scan_single_directory(db, directory)
+
+    # Default: scan all $PATH directories
+    path_dirs = os.environ.get("PATH", "").split(os.pathsep)
+    added = 0
+    for dir_str in path_dirs:
+        d = Path(dir_str)
+        if d.is_dir():
+            added += _scan_single_directory(db, d)
     return added

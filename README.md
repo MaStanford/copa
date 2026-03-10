@@ -12,7 +12,7 @@ Copa tracks the commands you run, ranks them by frequency and recency, and gives
 - **Tab completion** — Copa supplements zsh's tab completion for *any* command using your command history database
 - **Auto-evolution** — `copa evolve` finds your most-used commands from zsh history and promotes them
 - **LLM descriptions** — `copa fix --auto` uses Claude or ollama to generate descriptions for undescribed commands
-- **Script protocol** — `#@ Description:` / `#@ Usage:` headers in your scripts are auto-detected by `copa scan`
+- **Script protocol** — `#@ Description:` / `#@ Usage:` headers in your scripts are auto-detected by `copa scan` across all `$PATH` directories
 - **Groups & Ctrl+G** — organize commands by project, device, or workflow; assign groups inline from the fzf palette with Ctrl+G
 - **Sharing & `copa create`** — export/import command sets as `.copa` JSON files; `copa create` scaffolds a `.copa` file from an existing group
 - **Set filtering** — scope list, search, and fzf to a specific shared set with `--set`
@@ -181,7 +181,7 @@ copa evolve -k 20 --auto
 # Generate descriptions with LLM
 copa fix --auto
 
-# Scan ~/bin/ scripts
+# Scan $PATH for scripts with metadata
 copa scan
 
 # Open fzf command palette (or press Ctrl+R)
@@ -268,8 +268,8 @@ Scripts without `#@` headers still work — Copa falls back to legacy patterns (
 ### Scan scripts
 
 ```bash
-copa scan               # scans ~/bin/ by default
-copa scan --dir /path/to/scripts
+copa scan               # scans all $PATH directories
+copa scan --dir ~/bin   # scan a specific directory
 ```
 
 ## Sharing
@@ -382,7 +382,7 @@ Available MCP tools:
 | `copa remove ID` | Remove a command |
 | `copa stats` | Usage statistics |
 | `copa sync` | Import from zsh history |
-| `copa scan [--dir ~/bin]` | Import script metadata |
+| `copa scan [--dir path]` | Import script metadata from $PATH |
 | `copa evolve [-k 20] [--auto]` | Auto-add frequent commands (with optional LLM descriptions) |
 | `copa fix [--auto]` | Add missing descriptions (with optional LLM) |
 | `copa describe ID` | Generate description for one command |
