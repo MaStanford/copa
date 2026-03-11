@@ -37,7 +37,7 @@ def format_lines(commands: list[Command]) -> list[str]:
         return []
 
     # Compute column widths from the full list
-    max_cmd = min(max(len(c.command) for c in commands), 60)
+    max_cmd = max(len(c.command) for c in commands)
     max_grp = max(
         (len(f"[{c.group_name}]") for c in commands if c.group_name),
         default=0,
@@ -48,11 +48,10 @@ def format_lines(commands: list[Command]) -> list[str]:
         # Field 1: hidden ID
         id_field = f"{cmd.id:>5}"
 
-        # Field 2: command text, padded for column alignment
-        cmd_text = cmd.command
-        if len(cmd_text) > 60:
-            cmd_text = cmd_text[:57] + "..."
-        cmd_field = f" {cmd_text:<{max_cmd}} "
+        # Field 2: command text — full text, never truncated.
+        # fzf handles overflow with horizontal scrolling.
+        # Padding uses max_cmd for column alignment on shorter commands.
+        cmd_field = f" {cmd.command:<{max_cmd}} "
 
         # Field 3: metadata — pin indicator, group badge, frequency
         pin = f"{_YELLOW}*{_RESET} " if cmd.is_pinned else "  "
