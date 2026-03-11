@@ -149,6 +149,39 @@ class TestConfigToggleHeader:
                 break
 
 
+class TestCompletionMode:
+    """Test completion mode config."""
+
+    def test_default_mode_is_fallback(self):
+        config = load_config()
+        assert config["_completion_mode"] == "fallback"
+
+    def test_emit_zsh_config_has_completion_mode(self):
+        config = load_config()
+        output = emit_zsh_config(config)
+        assert "_COPA_COMPLETION_MODE='fallback'" in output
+
+    def test_load_config_accepts_valid_modes(self, tmp_path):
+        for mode in ("fallback", "always", "hybrid", "never"):
+            config_file = tmp_path / f"config_{mode}.toml"
+            config_file.write_text(f'[completion]\nmode = "{mode}"\n')
+            config = load_config(config_file)
+            assert config["_completion_mode"] == mode
+
+    def test_load_config_rejects_invalid_mode(self, tmp_path):
+        config_file = tmp_path / "config.toml"
+        config_file.write_text('[completion]\nmode = "bogus"\n')
+        config = load_config(config_file)
+        assert config["_completion_mode"] == "fallback"
+
+    def test_emit_modes_in_output(self):
+        config = load_config()
+        for mode in ("fallback", "always", "hybrid", "never"):
+            config["_completion_mode"] = mode
+            output = emit_zsh_config(config)
+            assert f"_COPA_COMPLETION_MODE='{mode}'" in output
+
+
 class TestTtyHelpersInCommon:
     """Test that tty helpers are accessible from cli_common."""
 

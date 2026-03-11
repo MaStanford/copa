@@ -71,12 +71,14 @@ def load_config(path: Path | None = None) -> dict:
     Returns a dict with:
     - All action_name -> fzf_key entries (keybindings)
     - "_completion_branding" -> bool (whether to show Copa branding on tab completions)
+    - "_completion_mode" -> str (fallback|always|hybrid|never)
 
     Silently ignores: unknown actions, invalid key names, reserved keys,
     duplicate assignments. Falls back to all defaults on malformed TOML.
     """
     config: dict = dict(DEFAULT_KEYS)
     config["_completion_branding"] = True  # default: show branding
+    config["_completion_mode"] = "fallback"  # default: only when native completers found nothing
 
     if path is None:
         path = Path.home() / ".copa" / "config.toml"
@@ -97,6 +99,9 @@ def load_config(path: Path | None = None) -> dict:
         branding = completion_section.get("branding")
         if isinstance(branding, bool):
             config["_completion_branding"] = branding
+        mode = completion_section.get("mode")
+        if isinstance(mode, str) and mode in ("fallback", "always", "hybrid", "never"):
+            config["_completion_mode"] = mode
 
     keys_section = data.get("keys")
     if not isinstance(keys_section, dict):
@@ -177,9 +182,11 @@ def emit_zsh_config(config: dict[str, str]) -> str:
     # Use $'...\n...' quoting so zsh interprets the newline
     lines.append(f"_COPA_HEADER=$'{row1}\\n{row2}'")
 
-    # Completion branding
+    # Completion config
     branding = config.get("_completion_branding", True)
     lines.append(f"_COPA_COMPLETION_BRANDING='{'true' if branding else 'false'}'")
+    completion_mode = config.get("_completion_mode", "fallback")
+    lines.append(f"_COPA_COMPLETION_MODE='{completion_mode}'")
 
     # Suffix associative array
     lines.append("typeset -gA _COPA_SUFFIXES")

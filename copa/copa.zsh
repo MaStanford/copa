@@ -19,6 +19,7 @@ eval "$(copa _fzf-config 2>/dev/null)" || {
   _COPA_CYCLE_GROUP_KEY='ctrl-n'
   _COPA_TOGGLE_HEADER_KEY='ctrl-h'
   _COPA_COMPLETION_BRANDING='true'
+  _COPA_COMPLETION_MODE='fallback'
   _COPA_HEADER=$'Copa | ^R:cycle | ^V:& | ^O:2>&1 | ^X:| | ^T:> | ^A:&& | ^/:quiet | ^H:keys\n^G:grp | ^D:desc | ^F:flag | ^S:scope | ^N:↻grp'
   typeset -gA _COPA_SUFFIXES
   _COPA_SUFFIXES[ctrl-v]=' &'
@@ -151,18 +152,33 @@ fi
 eval "$(copa completion zsh)"
 
 # --- Supplemental tab completion from Copa database ---
-# Registers as a fallback completer so that any command (e.g. adb <TAB>)
-# gets completion candidates from Copa's command history.
+# Mode is controlled by _COPA_COMPLETION_MODE (set via copa _fzf-config):
+#   fallback — only when native completers found nothing (default)
+#   always   — Copa completions replace native completions
+#   hybrid   — Copa completions shown alongside native completions
+#   never    — disable Copa tab completion entirely
+if [[ "$_COPA_COMPLETION_MODE" != 'never' ]]; then
+
 _copa_history_complete() {
-    # Only provide Copa completions when primary completers found nothing
-    (( compstate[nmatches] > 0 )) && return
+    # In fallback mode, only show when native completers found nothing
+    if [[ "$_COPA_COMPLETION_MODE" == 'fallback' ]]; then
+        (( compstate[nmatches] > 0 )) && return
+    fi
     # Skip empty tokens (bare <TAB> with no partial input)
     [[ -z "${words[CURRENT]}" ]] && return
     # Skip internal copa commands
     [[ "${words[CURRENT]}" == _copa_* ]] && return
     local -a results
     results=("${(@f)$(copa _complete-word "${(@)words[1,CURRENT]}" 2>/dev/null)}")
-    (( ${#results} )) && compadd -V 'copa-history' -o nosort -- "${results[@]}"
+    if (( ${#results} )); then
+        if [[ "$_COPA_COMPLETION_MODE" == 'always' ]]; then
+            # Replace: clear native matches, add only Copa results
+            compadd -U -V 'copa-history' -o nosort -- "${results[@]}"
+        else
+            # fallback & hybrid: add Copa results as a separate group
+            compadd -V 'copa-history' -o nosort -- "${results[@]}"
+        fi
+    fi
 }
 
 # Append to existing completers without clobbering user config
@@ -177,3 +193,5 @@ _copa_history_complete() {
         zstyle ':completion:*:*:*:copa-history' group-header '%F{magenta}-- Copa history --%f'
     fi
 }
+
+fi  # end _COPA_COMPLETION_MODE != 'never'

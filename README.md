@@ -64,7 +64,7 @@ Then restart your shell or run `source ~/.zshrc`. This does three things:
 
 1. **Records every command you run** — a `precmd` hook silently calls `copa _record` in the background after each command, building up frequency and recency data with zero latency impact.
 2. **Replaces Ctrl+R** — the default zsh reverse-history-search is replaced with Copa's fzf-powered command palette (see below).
-3. **Supplements tab completion** — Copa registers as a fallback completer so that any command gets completion candidates from your Copa database (see [Tab Completion](#tab-completion) below).
+3. **Supplements tab completion** — Copa registers as a completer so that any command gets completion candidates from your Copa database. The behavior is configurable (`fallback`, `hybrid`, `always`, or `never`) — see [Tab Completion](#tab-completion).
 
 Initialize the database:
 
@@ -113,11 +113,15 @@ While the fzf palette is open, these keys are available:
 | **Ctrl+T** | Append `>` | Redirect output |
 | **Ctrl+A** | Append `&&` | Chain with next command |
 | **Ctrl+/** | Append `2>/dev/null` | Suppress stderr |
-| **Ctrl+G** | Set group | Assign or change the group for the highlighted command |
-| **Ctrl+D** | Describe | Generate/edit a description for the highlighted command |
+| **Ctrl+S** | Scope by group | Opens inline group list — Enter filters to that group, ESC returns to all |
+| **Ctrl+G** | Assign group | Opens inline group list — Enter assigns the group to the highlighted command |
+| **Ctrl+N** | Cycle group | Cycles through groups: (all) → group1 → group2 → ... → (all) |
+| **Ctrl+D** | Describe | Generate/edit a description using LLM (with tty-aware input) |
 | **Ctrl+F** | Edit flags | Add flag documentation to the highlighted command |
+| **Ctrl+H** | Toggle header | Show/hide the key hints for more screen space |
+| **ESC** | Cancel/back | In scope/group mode: returns to command list. Otherwise: closes fzf |
 
-Keybindings are configurable via `~/.copa/config.toml`. See the `[keys]` section.
+Keybindings are configurable via `~/.copa/config.toml`. See [Configuration](#configuration).
 
 ### Preview pane
 
@@ -129,11 +133,29 @@ Selecting a command places it directly into your shell prompt (without executing
 
 ## Tab Completion
 
-Copa supplements zsh's built-in tab completion for **any** command — not just Copa's own CLI. Once `copa.zsh` is sourced, Copa registers as a fallback completer in zsh's completion system.
+Copa supplements zsh's built-in tab completion for **any** command — not just Copa's own CLI. Once `copa.zsh` is sourced, Copa registers as a completer in zsh's completion system.
+
+### Completion modes
+
+Copa supports four completion modes, configured via `~/.copa/config.toml`:
+
+| Mode | Behavior |
+|------|----------|
+| `fallback` | **(default)** Only show Copa completions when native completers found nothing |
+| `hybrid` | Show Copa completions alongside native completions (in a separate group) |
+| `always` | Copa completions replace native completions |
+| `never` | Disable Copa tab completion entirely |
+
+```toml
+# ~/.copa/config.toml
+[completion]
+mode = "fallback"    # fallback | hybrid | always | never
+branding = true      # show "Copa history" group header
+```
 
 ### How it works
 
-When you press Tab, zsh runs its normal completers first. If Copa's fallback also fires, it queries the Copa database for commands matching what you've typed so far and suggests the next word(s):
+When you press Tab, Copa queries its database for commands matching what you've typed so far and suggests the next word(s):
 
 ```
 $ adb shell dump<TAB>
@@ -399,6 +421,36 @@ Available MCP tools:
 - `copa_update_description` — update a description
 - `copa_create_group` — create a group with commands
 - `copa_bulk_add` — bulk add commands
+
+## Configuration
+
+Copa is configured via `~/.copa/config.toml`. All settings are optional — Copa uses sensible defaults.
+
+```toml
+# ~/.copa/config.toml
+
+# Keybindings for the Ctrl+R fzf palette
+# Values are fzf key names: ctrl-<letter>, alt-<letter>, ctrl-/
+# ctrl-r and enter are reserved and cannot be reassigned
+[keys]
+background = "ctrl-v"       # append &
+merge_output = "ctrl-o"     # append 2>&1
+pipe = "ctrl-x"             # append |
+redirect = "ctrl-t"         # append >
+chain = "ctrl-a"            # append &&
+suppress = "ctrl-/"         # append 2>/dev/null
+describe = "ctrl-d"         # LLM describe
+group = "ctrl-g"            # assign group (inline modal)
+flags = "ctrl-f"            # edit flags
+filter_group = "ctrl-s"     # scope by group (inline modal)
+cycle_group = "ctrl-n"      # cycle through groups
+toggle_header = "ctrl-h"    # show/hide key hints
+
+# Tab completion behavior
+[completion]
+mode = "fallback"           # fallback | hybrid | always | never
+branding = true             # show "Copa history" group header
+```
 
 ## CLI Reference
 
