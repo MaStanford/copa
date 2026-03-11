@@ -18,6 +18,7 @@ DEFAULT_KEYS: dict[str, str] = {
     "flags": "ctrl-f",
     "filter_group": "ctrl-s",
     "cycle_group": "ctrl-n",
+    "toggle_header": "ctrl-h",
 }
 
 # Action name -> shell suffix appended to the command
@@ -43,6 +44,7 @@ LABELS: dict[str, str] = {
     "flags": "flag",
     "filter_group": "scope",
     "cycle_group": "↻grp",
+    "toggle_header": "keys",
 }
 
 # Keys that cannot be overridden by user config
@@ -140,6 +142,7 @@ def emit_zsh_config(config: dict[str, str]) -> str:
     flags_key = config.get("flags", DEFAULT_KEYS["flags"])
     filter_group_key = config.get("filter_group", DEFAULT_KEYS["filter_group"])
     cycle_group_key = config.get("cycle_group", DEFAULT_KEYS["cycle_group"])
+    toggle_header_key = config.get("toggle_header", DEFAULT_KEYS["toggle_header"])
     expect_keys = [
         config[action]
         for action in ("background", "merge_output", "pipe", "redirect", "chain", "suppress")
@@ -152,27 +155,27 @@ def emit_zsh_config(config: dict[str, str]) -> str:
     lines.append(f"_COPA_FLAGS_KEY='{flags_key}'")
     lines.append(f"_COPA_FILTER_GROUP_KEY='{filter_group_key}'")
     lines.append(f"_COPA_CYCLE_GROUP_KEY='{cycle_group_key}'")
+    lines.append(f"_COPA_TOGGLE_HEADER_KEY='{toggle_header_key}'")
 
-    # Build header: Copa | ^R:cycle | ^G:& | ^O:2>&1 | ...
-    header_parts = ["Copa", f"{_format_key_label('ctrl-r')}:cycle"]
-    for action in (
-        "background",
-        "merge_output",
-        "pipe",
-        "redirect",
-        "chain",
-        "suppress",
-        "group",
-        "describe",
-        "flags",
-        "filter_group",
-        "cycle_group",
-    ):
+    # Build 2-line header to avoid wrapping on narrow terminals
+    # Row 1: composition keys + toggle
+    row1_parts = ["Copa", f"{_format_key_label('ctrl-r')}:cycle"]
+    for action in ("background", "merge_output", "pipe", "redirect", "chain", "suppress", "toggle_header"):
         key = config.get(action, DEFAULT_KEYS[action])
         label = LABELS[action]
-        header_parts.append(f"{_format_key_label(key)}:{label}")
-    header = " | ".join(header_parts)
-    lines.append(f"_COPA_HEADER='{header}'")
+        row1_parts.append(f"{_format_key_label(key)}:{label}")
+    row1 = " | ".join(row1_parts)
+
+    # Row 2: action keys
+    row2_parts = []
+    for action in ("group", "describe", "flags", "filter_group", "cycle_group"):
+        key = config.get(action, DEFAULT_KEYS[action])
+        label = LABELS[action]
+        row2_parts.append(f"{_format_key_label(key)}:{label}")
+    row2 = " | ".join(row2_parts)
+
+    # Use $'...\n...' quoting so zsh interprets the newline
+    lines.append(f"_COPA_HEADER=$'{row1}\\n{row2}'")
 
     # Completion branding
     branding = config.get("_completion_branding", True)

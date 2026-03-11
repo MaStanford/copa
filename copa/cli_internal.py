@@ -6,50 +6,7 @@ import sys
 
 import click
 
-from .cli_common import complete_group, complete_shared_set, get_db
-
-
-def _open_tty():
-    """Open /dev/tty with echo enabled for use inside fzf execute() bindings.
-
-    fzf disables terminal echo before launching execute() subcommands.
-    We re-enable it so users can see what they type.
-
-    Returns (tty_file, original_termios) or (None, None) on failure.
-    """
-    try:
-        tty = open("/dev/tty", "r+")
-    except OSError:
-        return None, None
-
-    old_attrs = None
-    try:
-        import termios
-
-        fd = tty.fileno()
-        old_attrs = termios.tcgetattr(fd)
-        new_attrs = termios.tcgetattr(fd)
-        # Enable echo (ECHO) and canonical mode (ICANON) for line-buffered input
-        new_attrs[3] |= termios.ECHO | termios.ICANON
-        termios.tcsetattr(fd, termios.TCSANOW, new_attrs)
-    except (ImportError, termios.error):
-        pass  # termios not available (non-Unix) — proceed without echo fix
-
-    return tty, old_attrs
-
-
-def _close_tty(tty, old_attrs):
-    """Restore terminal attributes and close the tty file."""
-    if tty is None:
-        return
-    if old_attrs is not None:
-        try:
-            import termios
-
-            termios.tcsetattr(tty.fileno(), termios.TCSANOW, old_attrs)
-        except (ImportError, termios.error):
-            pass
-    tty.close()
+from .cli_common import _close_tty, _open_tty, complete_group, complete_shared_set, get_db
 
 
 @click.command("_record", hidden=True)
@@ -225,6 +182,26 @@ def list_groups():
         click.echo(g)
 
 
+@click.command("_list-groups-for-assign", hidden=True)
+def list_groups_for_assign():
+    """Output group names for group-assign modal."""
+    db = get_db()
+    click.echo("(none)")
+    for g in db.get_groups():
+        click.echo(g)
+
+
+@click.command("_set-group-direct", hidden=True)
+@click.argument("cmd_id", type=int)
+@click.argument("group_name", required=False, default=None)
+def set_group_direct(cmd_id, group_name):
+    """Assign group non-interactively (for fzf modal)."""
+    db = get_db()
+    if group_name == "(none)":
+        group_name = None
+    db.update_group(cmd_id, group_name)
+
+
 @click.command("_next-group", hidden=True)
 @click.argument("current", default="(all)")
 def next_group(current: str):
@@ -327,6 +304,8 @@ def register(cli):
     cli.add_command(set_group)
     cli.add_command(set_flags)
     cli.add_command(list_groups)
+    cli.add_command(list_groups_for_assign)
+    cli.add_command(set_group_direct)
     cli.add_command(next_group)
     cli.add_command(complete_word)
     cli.add_command(mcp_cmd)

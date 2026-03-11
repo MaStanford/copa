@@ -17,8 +17,9 @@ eval "$(copa _fzf-config 2>/dev/null)" || {
   _COPA_FLAGS_KEY='ctrl-f'
   _COPA_FILTER_GROUP_KEY='ctrl-s'
   _COPA_CYCLE_GROUP_KEY='ctrl-n'
+  _COPA_TOGGLE_HEADER_KEY='ctrl-h'
   _COPA_COMPLETION_BRANDING='true'
-  _COPA_HEADER='Copa | ^R:cycle | ^V:& | ^O:2>&1 | ^X:| | ^T:> | ^A:&& | ^/:quiet | ^G:grp | ^D:desc | ^F:flag | ^S:scope | ^N:↻grp'
+  _COPA_HEADER=$'Copa | ^R:cycle | ^V:& | ^O:2>&1 | ^X:| | ^T:> | ^A:&& | ^/:quiet | ^H:keys\n^G:grp | ^D:desc | ^F:flag | ^S:scope | ^N:↻grp'
   typeset -gA _COPA_SUFFIXES
   _COPA_SUFFIXES[ctrl-v]=' &'
   _COPA_SUFFIXES[ctrl-o]=' 2>&1'
@@ -57,6 +58,7 @@ _copa_fzf_widget() {
   local mode="all"
   local output
   local copa_bin="${commands[copa]:-copa}"
+  local _copa_modal_file=$(mktemp -t copa_modal.XXXXXX)
 
   output=$("$copa_bin" fzf-list --mode "$mode" | \
     fzf --ansi \
@@ -70,15 +72,11 @@ _copa_fzf_widget() {
         --layout reverse \
         --expect "$_COPA_EXPECT" \
         --bind "${_COPA_DESCRIBE_KEY}:execute($copa_bin describe {1})+refresh-preview" \
-        --bind "${_COPA_GROUP_KEY}:execute($copa_bin _set-group {1})+reload($copa_bin fzf-list)+refresh-preview" \
         --bind "${_COPA_FLAGS_KEY}:execute($copa_bin _set-flags {1})+reload($copa_bin fzf-list)+refresh-preview" \
-        --bind "${_COPA_FILTER_GROUP_KEY}:transform:
-          group=\$(${copa_bin} _list-groups | fzf --height 40% --layout reverse --prompt 'group> ' --header 'Select group (ESC=cancel)');
-          if [[ \$group == '(all)' ]]; then
-            echo \"reload(${copa_bin} fzf-list --mode all)+change-prompt(copa> )\"
-          elif [[ -n \$group ]]; then
-            echo \"reload(${copa_bin} fzf-list --mode group --group \$group)+change-prompt(copa [\$group]> )\"
-          fi" \
+        --bind "${_COPA_FILTER_GROUP_KEY}:reload($copa_bin _list-groups)+change-prompt(scope> )+clear-query" \
+        --bind "${_COPA_GROUP_KEY}:transform:
+          echo {1} > ${_copa_modal_file};
+          echo \"reload(${copa_bin} _list-groups-for-assign)+change-prompt(group> )+clear-query\"" \
         --bind "${_COPA_CYCLE_GROUP_KEY}:transform:
           cur_group='(all)';
           if [[ \$FZF_PROMPT =~ 'copa \\[(.+)\\]> ' ]]; then
@@ -98,8 +96,32 @@ _copa_fzf_widget() {
           else
             echo "reload('"$copa_bin"' fzf-list --mode all)+change-prompt(copa> )"
           fi' \
-        --bind 'enter:accept' \
+        --bind "${_COPA_TOGGLE_HEADER_KEY}:toggle-header" \
+        --bind 'enter:transform:
+          if [[ $FZF_PROMPT == "scope> " ]]; then
+            selected={};
+            if [[ $selected == "(all)" ]]; then
+              echo "reload('"$copa_bin"' fzf-list --mode all)+change-prompt(copa> )+clear-query"
+            else
+              echo "reload('"$copa_bin"' fzf-list --mode group --group $selected)+change-prompt(copa [$selected]> )+clear-query"
+            fi
+          elif [[ $FZF_PROMPT == "group> " ]]; then
+            cmd_id=$(cat '"${_copa_modal_file}"');
+            selected={};
+            '"$copa_bin"' _set-group-direct $cmd_id $selected;
+            echo "reload('"$copa_bin"' fzf-list)+change-prompt(copa> )+clear-query"
+          else
+            echo "accept"
+          fi' \
+        --bind 'esc:transform:
+          if [[ $FZF_PROMPT == "scope> " || $FZF_PROMPT == "group> " ]]; then
+            echo "reload('"$copa_bin"' fzf-list)+change-prompt(copa> )+clear-query"
+          else
+            echo "abort"
+          fi' \
   )
+
+  [[ -f "$_copa_modal_file" ]] && rm -f "$_copa_modal_file"
 
   if [[ -n "$output" ]]; then
     # --expect output: line 1 = key pressed (empty for Enter), line 2+ = selected item
@@ -107,7 +129,8 @@ _copa_fzf_widget() {
     key=$(echo "$output" | head -1)
     selected=$(echo "$output" | tail -n +2)
 
-    if [[ -n "$selected" ]]; then
+    # Skip lines without ┃ (modal group names don't have the delimiter)
+    if [[ -n "$selected" && "$selected" == *┃* ]]; then
       cmd=$(echo "$selected" | cut -d'┃' -f2 | sed 's/^ *//;s/ *$//')
       suffix="${_COPA_SUFFIXES[$key]}"
       LBUFFER="${cmd}${suffix}"

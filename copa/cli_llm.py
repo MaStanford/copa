@@ -6,7 +6,7 @@ import sys
 
 import click
 
-from .cli_common import get_db
+from .cli_common import _close_tty, _open_tty, get_db
 
 
 @click.command()
@@ -119,31 +119,54 @@ def describe(cmd_id: int):
         click.echo(f"Command {cmd_id} not found.", err=True)
         sys.exit(1)
 
-    click.echo(f"  [{cmd.id}] {click.style(cmd.command, bold=True)}")
+    tty, old_attrs = _open_tty()
+
+    def tty_write(msg: str):
+        if tty:
+            tty.write(msg + "\n")
+            tty.flush()
+        else:
+            click.echo(msg)
+
+    def tty_read(prompt: str) -> str:
+        if tty:
+            tty.write(prompt)
+            tty.flush()
+            return tty.readline().rstrip("\n")
+        return input(prompt)
+
+    tty_write(f"  [{cmd.id}] {cmd.command}")
     if cmd.description:
-        click.echo(f"  Current: {cmd.description}")
+        tty_write(f"  Current: {cmd.description}")
 
     backend = db.get_meta("llm_backend") or "claude"
     model = db.get_meta("ollama_model") or "llama3.2:3b"
 
-    click.echo(click.style(f"  Generating ({backend})...", dim=True), nl=False)
+    tty_write(f"  Generating ({backend})...")
     suggestion = generate_description(cmd.command, backend=backend, model=model)
 
-    if suggestion:
-        click.echo(f"\r  Suggestion: {click.style(suggestion, fg='cyan')}  ")
-        desc = input(f"  Description [{suggestion}]: ").strip()
-        if desc.lower() == "q":
-            return
-        if not desc:
-            desc = suggestion
-    else:
-        click.echo("\r  (no suggestion generated)         ")
-        desc = input("  Description: ").strip()
-        if not desc:
-            return
+    try:
+        if suggestion:
+            tty_write(f"  Suggestion: {suggestion}")
+            desc = tty_read(f"  Description [{suggestion}]: ").strip()
+            if desc.lower() == "q":
+                _close_tty(tty, old_attrs)
+                return
+            if not desc:
+                desc = suggestion
+        else:
+            tty_write("  (no suggestion generated)")
+            desc = tty_read("  Description: ").strip()
+            if not desc:
+                _close_tty(tty, old_attrs)
+                return
+    except (EOFError, KeyboardInterrupt):
+        _close_tty(tty, old_attrs)
+        return
 
     db.update_description(cmd.id, desc)
-    click.echo(click.style("  saved", fg="green"))
+    tty_write("  saved")
+    _close_tty(tty, old_attrs)
 
 
 @click.command()
