@@ -20,6 +20,64 @@ def cli():
     pass
 
 
+# --- init ---
+
+
+@cli.command()
+@click.argument("shell", type=click.Choice(["zsh"]))
+def init(shell: str):
+    """Print shell integration code. Add to your .zshrc: eval "$(copa init zsh)" """
+    from importlib.resources import files
+
+    zsh_file = files("copa").joinpath("copa.zsh")
+    click.echo(zsh_file.read_text())
+
+
+# --- uninstall ---
+
+
+@cli.command()
+@click.option("-y", "--yes", is_flag=True, help="Skip confirmation prompt.")
+def uninstall(yes: bool):
+    """Remove Copa data and show cleanup instructions."""
+    import shutil
+
+    copa_dir = Path.home() / ".copa"
+
+    # Inventory what exists
+    items: list[tuple[str, Path]] = []
+    if copa_dir.is_dir():
+        db_path = copa_dir / "copa.db"
+        config_path = copa_dir / "config.toml"
+        if db_path.is_file():
+            items.append(("database", db_path))
+        if config_path.is_file():
+            items.append(("config", config_path))
+        # Count any other files (.copa exports, etc.)
+        other = [f for f in copa_dir.iterdir() if f not in (db_path, config_path)]
+        for f in other:
+            items.append(("file", f))
+
+    if not items:
+        click.echo("No Copa data found (~/.copa/ does not exist or is empty).")
+    else:
+        click.echo("Copa data directory: ~/.copa/")
+        for kind, path in items:
+            size = path.stat().st_size if path.is_file() else 0
+            label = f"{size:,} bytes" if size else "directory"
+            click.echo(f"  {path.name} ({kind}, {label})")
+
+        if not yes:
+            click.confirm("\nDelete ~/.copa/ and all its contents?", abort=True)
+
+        shutil.rmtree(copa_dir)
+        click.echo(click.style("Deleted ~/.copa/", fg="green"))
+
+    click.echo("\nTo finish uninstalling:")
+    click.echo('  1. Remove this line from your ~/.zshrc:  eval "$(copa init zsh)"')
+    click.echo("  2. Run:  pip uninstall copa-cli")
+
+
 # --- add ---
 
 

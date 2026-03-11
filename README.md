@@ -57,7 +57,7 @@ pip install copa-cli[ollama]
 Add this line to your `~/.zshrc`:
 
 ```bash
-source /path/to/copa/copa.zsh
+eval "$(copa init zsh)"
 ```
 
 Then restart your shell or run `source ~/.zshrc`. This does three things:

@@ -1,6 +1,5 @@
 # Copa — shell integration for zsh
 # Add to your .zshrc:  eval "$(copa init zsh)"
-# Or source directly:  source /path/to/copa/copa.zsh
 #
 # What this does:
 #   1. Records every command you run (precmd hook, background, zero latency)
@@ -8,15 +7,6 @@
 #      command text AND descriptions — not just raw history
 #   3. Ctrl+R cycles modes inside fzf: all → frequent → recent → all
 #   4. Composition keys append shell operators (|, &&, &, etc.) to selected commands
-
-# Ensure copa is available (only needed when sourcing directly, not via eval)
-if ! command -v copa &>/dev/null; then
-  if [[ -x "$HOME/bin/copa" ]]; then
-    export PATH="$HOME/bin:$PATH"
-  else
-    return
-  fi
-fi
 
 # --- Load keybinding config (runs once at shell startup) ---
 eval "$(copa _fzf-config 2>/dev/null)" || {
