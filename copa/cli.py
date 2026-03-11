@@ -14,7 +14,7 @@ from .scoring import rank_commands
 
 
 @click.group()
-@click.version_option(package_name="copa")
+@click.version_option(package_name="copa-cli")
 def cli():
     """Copa — Command Palette. Smart command tracking, ranking, and sharing."""
     pass
