@@ -175,20 +175,20 @@ def set_flags(cmd_id: int):
 
 @click.command("_list-groups", hidden=True)
 def list_groups():
-    """Output group names for fzf group picker."""
+    """Output group names for fzf group picker (delimited for --with-nth)."""
     db = get_db()
-    click.echo("(all)")
+    click.echo("0┃(all)┃")
     for g in db.get_groups():
-        click.echo(g)
+        click.echo(f"0┃{g}┃")
 
 
 @click.command("_list-groups-for-assign", hidden=True)
 def list_groups_for_assign():
-    """Output group names for group-assign modal."""
+    """Output group names for group-assign modal (delimited for --with-nth)."""
     db = get_db()
-    click.echo("(none)")
+    click.echo("0┃(none)┃")
     for g in db.get_groups():
-        click.echo(g)
+        click.echo(f"0┃{g}┃")
 
 
 @click.command("_set-group-direct", hidden=True)

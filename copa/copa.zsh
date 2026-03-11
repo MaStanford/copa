@@ -73,10 +73,10 @@ _copa_fzf_widget() {
         --expect "$_COPA_EXPECT" \
         --bind "${_COPA_DESCRIBE_KEY}:execute($copa_bin describe {1})+refresh-preview" \
         --bind "${_COPA_FLAGS_KEY}:execute($copa_bin _set-flags {1})+reload($copa_bin fzf-list)+refresh-preview" \
-        --bind "${_COPA_FILTER_GROUP_KEY}:reload($copa_bin _list-groups)+change-prompt(scope> )+clear-query" \
+        --bind "${_COPA_FILTER_GROUP_KEY}:reload($copa_bin _list-groups)+change-prompt(scope> )+clear-query+hide-preview" \
         --bind "${_COPA_GROUP_KEY}:transform:
           echo {1} > ${_copa_modal_file};
-          echo \"reload(${copa_bin} _list-groups-for-assign)+change-prompt(group> )+clear-query\"" \
+          echo \"reload(${copa_bin} _list-groups-for-assign)+change-prompt(group> )+clear-query+hide-preview\"" \
         --bind "${_COPA_CYCLE_GROUP_KEY}:transform:
           cur_group='(all)';
           if [[ \$FZF_PROMPT =~ 'copa \\[(.+)\\]> ' ]]; then
@@ -99,23 +99,23 @@ _copa_fzf_widget() {
         --bind "${_COPA_TOGGLE_HEADER_KEY}:toggle-header" \
         --bind 'enter:transform:
           if [[ $FZF_PROMPT == "scope> " ]]; then
-            selected={};
+            selected={2};
             if [[ $selected == "(all)" ]]; then
-              echo "reload('"$copa_bin"' fzf-list --mode all)+change-prompt(copa> )+clear-query"
+              echo "reload('"$copa_bin"' fzf-list --mode all)+change-prompt(copa> )+clear-query+show-preview"
             else
-              echo "reload('"$copa_bin"' fzf-list --mode group --group $selected)+change-prompt(copa [$selected]> )+clear-query"
+              echo "reload('"$copa_bin"' fzf-list --mode group --group $selected)+change-prompt(copa [$selected]> )+clear-query+show-preview"
             fi
           elif [[ $FZF_PROMPT == "group> " ]]; then
             cmd_id=$(cat '"${_copa_modal_file}"');
-            selected={};
+            selected={2};
             '"$copa_bin"' _set-group-direct $cmd_id $selected;
-            echo "reload('"$copa_bin"' fzf-list)+change-prompt(copa> )+clear-query"
+            echo "reload('"$copa_bin"' fzf-list)+change-prompt(copa> )+clear-query+show-preview"
           else
             echo "accept"
           fi' \
         --bind 'esc:transform:
           if [[ $FZF_PROMPT == "scope> " || $FZF_PROMPT == "group> " ]]; then
-            echo "reload('"$copa_bin"' fzf-list)+change-prompt(copa> )+clear-query"
+            echo "reload('"$copa_bin"' fzf-list)+change-prompt(copa> )+clear-query+show-preview"
           else
             echo "abort"
           fi' \

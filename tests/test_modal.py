@@ -27,7 +27,9 @@ class TestListGroupsForAssign:
         result = runner.invoke(cli, ["_list-groups-for-assign"])
         assert result.exit_code == 0
         lines = result.output.strip().split("\n")
-        assert lines[0] == "(none)"
+        # Delimited format: 0┃(none)┃
+        assert "(none)" in lines[0]
+        assert "┃" in lines[0]
 
     def test_outputs_groups(self, tmp_path, monkeypatch):
         db = self._make_db(tmp_path, monkeypatch)
@@ -37,16 +39,19 @@ class TestListGroupsForAssign:
         result = runner.invoke(cli, ["_list-groups-for-assign"])
         assert result.exit_code == 0
         lines = result.output.strip().split("\n")
-        assert lines[0] == "(none)"
-        assert "alpha" in lines
-        assert "beta" in lines
+        assert "(none)" in lines[0]
+        group_names = [line.split("┃")[1] for line in lines]
+        assert "alpha" in group_names
+        assert "beta" in group_names
 
     def test_no_groups_just_none(self, tmp_path, monkeypatch):
         self._make_db(tmp_path, monkeypatch)
         runner = CliRunner()
         result = runner.invoke(cli, ["_list-groups-for-assign"])
         assert result.exit_code == 0
-        assert result.output.strip() == "(none)"
+        lines = result.output.strip().split("\n")
+        assert len(lines) == 1
+        assert "(none)" in lines[0]
 
 
 class TestSetGroupDirect:
