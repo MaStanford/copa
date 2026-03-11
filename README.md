@@ -1,8 +1,8 @@
 # Copa — Command Palette for your shell
 
 [![CI](https://github.com/MaStanford/copa/actions/workflows/ci.yml/badge.svg)](https://github.com/MaStanford/copa/actions/workflows/ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/copa)](https://pypi.org/project/copa/)
-[![Python](https://img.shields.io/pypi/pyversions/copa)](https://pypi.org/project/copa/)
+[![PyPI](https://img.shields.io/pypi/v/copa-cli)](https://pypi.org/project/copa-cli/)
+[![Python](https://img.shields.io/pypi/pyversions/copa-cli)](https://pypi.org/project/copa-cli/)
 
 Copa tracks the commands you run, ranks them by frequency and recency, and gives you instant fuzzy search via fzf. Think of it as a smart, searchable, shareable upgrade to shell history.
 
@@ -42,14 +42,14 @@ sudo apt install fzf
 ### Install Copa
 
 ```bash
-pip install copa
+pip install copa-cli
 # or from source:
 git clone https://github.com/MaStanford/copa.git
 cd copa
 pip install -e .
 
 # Optional: ollama backend for LLM descriptions
-pip install copa[ollama]
+pip install copa-cli[ollama]
 ```
 
 ### Shell integration (required)
@@ -374,7 +374,7 @@ Copa includes an MCP server so Claude Code can search and add commands.
 Install the MCP dependency:
 
 ```bash
-pip install copa[mcp]
+pip install copa-cli[mcp]
 ```
 
 Add to your Claude Code MCP config (`.mcp.json` in your project or home dir):
