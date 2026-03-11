@@ -25,7 +25,9 @@ eval "$(copa _fzf-config 2>/dev/null)" || {
   _COPA_GROUP_KEY='ctrl-g'
   _COPA_FLAGS_KEY='ctrl-f'
   _COPA_FILTER_GROUP_KEY='ctrl-s'
-  _COPA_HEADER='Copa | ^R:cycle | ^V:& | ^O:2>&1 | ^X:| | ^T:> | ^A:&& | ^/:quiet | ^G:grp | ^D:desc | ^F:flag | ^S:scope'
+  _COPA_CYCLE_GROUP_KEY='ctrl-n'
+  _COPA_COMPLETION_BRANDING='true'
+  _COPA_HEADER='Copa | ^R:cycle | ^V:& | ^O:2>&1 | ^X:| | ^T:> | ^A:&& | ^/:quiet | ^G:grp | ^D:desc | ^F:flag | ^S:scope | ^N:↻grp'
   typeset -gA _COPA_SUFFIXES
   _COPA_SUFFIXES[ctrl-v]=' &'
   _COPA_SUFFIXES[ctrl-o]=' 2>&1'
@@ -86,6 +88,17 @@ _copa_fzf_widget() {
           elif [[ -n \$group ]]; then
             echo \"reload(${copa_bin} fzf-list --mode group --group \$group)+change-prompt(copa [\$group]> )\"
           fi" \
+        --bind "${_COPA_CYCLE_GROUP_KEY}:transform:
+          cur_group='(all)';
+          if [[ \$FZF_PROMPT =~ 'copa \\[(.+)\\]> ' ]]; then
+            cur_group=\"\${match[1]}\";
+          fi;
+          next=\$(${copa_bin} _next-group \"\$cur_group\");
+          if [[ \$next == '(all)' ]]; then
+            echo \"reload(${copa_bin} fzf-list --mode all)+change-prompt(copa> )\";
+          else
+            echo \"reload(${copa_bin} fzf-list --mode group --group \$next)+change-prompt(copa [\$next]> )\";
+          fi" \
         --bind 'ctrl-r:transform:
           if [[ $FZF_PROMPT == "copa> " ]]; then
             echo "reload('"$copa_bin"' fzf-list --mode frequent)+change-prompt(frequent> )"
@@ -127,9 +140,15 @@ eval "$(copa completion zsh)"
 # Registers as a fallback completer so that any command (e.g. adb <TAB>)
 # gets completion candidates from Copa's command history.
 _copa_history_complete() {
+    # Only provide Copa completions when primary completers found nothing
+    (( compstate[nmatches] > 0 )) && return
+    # Skip empty tokens (bare <TAB> with no partial input)
+    [[ -z "${words[CURRENT]}" ]] && return
+    # Skip internal copa commands
+    [[ "${words[CURRENT]}" == _copa_* ]] && return
     local -a results
     results=("${(@f)$(copa _complete-word "${(@)words[1,CURRENT]}" 2>/dev/null)}")
-    (( ${#results} )) && compadd -- "${results[@]}"
+    (( ${#results} )) && compadd -V 'copa-history' -o nosort -- "${results[@]}"
 }
 
 # Append to existing completers without clobbering user config
@@ -138,5 +157,9 @@ _copa_history_complete() {
     zstyle -g cur ':completion:*' completer 2>/dev/null
     if (( ! ${cur[(Ie)_copa_history_complete]} )); then
         zstyle ':completion:*' completer ${cur:-_complete} _copa_history_complete
+    fi
+    # Copa completion branding: show "Copa history" header when branding is enabled
+    if [[ "$_COPA_COMPLETION_BRANDING" != 'false' ]]; then
+        zstyle ':completion:*:*:*:copa-history' group-header '%F{magenta}-- Copa history --%f'
     fi
 }

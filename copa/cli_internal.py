@@ -225,6 +225,20 @@ def list_groups():
         click.echo(g)
 
 
+@click.command("_next-group", hidden=True)
+@click.argument("current", default="(all)")
+def next_group(current: str):
+    """Output the next group in the cycle: (all) → g1 → g2 → ... → (all)."""
+    db = get_db()
+    groups = ["(all)"] + db.get_groups()
+    try:
+        idx = groups.index(current)
+    except ValueError:
+        idx = -1
+    next_idx = (idx + 1) % len(groups)
+    click.echo(groups[next_idx])
+
+
 @click.command("_complete-word", hidden=True)
 @click.argument("words", nargs=-1)
 def complete_word(words):
@@ -313,6 +327,7 @@ def register(cli):
     cli.add_command(set_group)
     cli.add_command(set_flags)
     cli.add_command(list_groups)
+    cli.add_command(next_group)
     cli.add_command(complete_word)
     cli.add_command(mcp_cmd)
     cli.add_command(completion)

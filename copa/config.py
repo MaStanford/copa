@@ -17,6 +17,7 @@ DEFAULT_KEYS: dict[str, str] = {
     "group": "ctrl-g",
     "flags": "ctrl-f",
     "filter_group": "ctrl-s",
+    "cycle_group": "ctrl-n",
 }
 
 # Action name -> shell suffix appended to the command
@@ -41,6 +42,7 @@ LABELS: dict[str, str] = {
     "describe": "desc",
     "flags": "flag",
     "filter_group": "scope",
+    "cycle_group": "↻grp",
 }
 
 # Keys that cannot be overridden by user config
@@ -61,14 +63,18 @@ def _format_key_label(fzf_key: str) -> str:
     return fzf_key
 
 
-def load_config(path: Path | None = None) -> dict[str, str]:
-    """Load keybinding config from TOML, merged with defaults.
+def load_config(path: Path | None = None) -> dict:
+    """Load keybinding and feature config from TOML, merged with defaults.
 
-    Returns a dict of action_name -> fzf_key.
+    Returns a dict with:
+    - All action_name -> fzf_key entries (keybindings)
+    - "_completion_branding" -> bool (whether to show Copa branding on tab completions)
+
     Silently ignores: unknown actions, invalid key names, reserved keys,
     duplicate assignments. Falls back to all defaults on malformed TOML.
     """
-    config = dict(DEFAULT_KEYS)
+    config: dict = dict(DEFAULT_KEYS)
+    config["_completion_branding"] = True  # default: show branding
 
     if path is None:
         path = Path.home() / ".copa" / "config.toml"
@@ -83,12 +89,19 @@ def load_config(path: Path | None = None) -> dict[str, str]:
     except Exception:
         return config
 
+    # [completion] section
+    completion_section = data.get("completion")
+    if isinstance(completion_section, dict):
+        branding = completion_section.get("branding")
+        if isinstance(branding, bool):
+            config["_completion_branding"] = branding
+
     keys_section = data.get("keys")
     if not isinstance(keys_section, dict):
         return config
 
     # Track which fzf keys are already assigned (from defaults not yet overridden)
-    used_keys = set(config.values())
+    used_keys = {v for k, v in config.items() if not k.startswith("_")}
 
     for action, key in keys_section.items():
         # Skip unknown actions
@@ -121,11 +134,12 @@ def emit_zsh_config(config: dict[str, str]) -> str:
     """
     lines: list[str] = []
 
-    # Separate describe, group, flags, and filter_group keys from expect keys (composition keys)
+    # Separate describe, group, flags, filter_group, and cycle_group keys from expect keys
     describe_key = config.get("describe", DEFAULT_KEYS["describe"])
     group_key = config.get("group", DEFAULT_KEYS["group"])
     flags_key = config.get("flags", DEFAULT_KEYS["flags"])
     filter_group_key = config.get("filter_group", DEFAULT_KEYS["filter_group"])
+    cycle_group_key = config.get("cycle_group", DEFAULT_KEYS["cycle_group"])
     expect_keys = [
         config[action]
         for action in ("background", "merge_output", "pipe", "redirect", "chain", "suppress")
@@ -137,6 +151,7 @@ def emit_zsh_config(config: dict[str, str]) -> str:
     lines.append(f"_COPA_GROUP_KEY='{group_key}'")
     lines.append(f"_COPA_FLAGS_KEY='{flags_key}'")
     lines.append(f"_COPA_FILTER_GROUP_KEY='{filter_group_key}'")
+    lines.append(f"_COPA_CYCLE_GROUP_KEY='{cycle_group_key}'")
 
     # Build header: Copa | ^R:cycle | ^G:& | ^O:2>&1 | ...
     header_parts = ["Copa", f"{_format_key_label('ctrl-r')}:cycle"]
@@ -151,12 +166,17 @@ def emit_zsh_config(config: dict[str, str]) -> str:
         "describe",
         "flags",
         "filter_group",
+        "cycle_group",
     ):
         key = config.get(action, DEFAULT_KEYS[action])
         label = LABELS[action]
         header_parts.append(f"{_format_key_label(key)}:{label}")
     header = " | ".join(header_parts)
     lines.append(f"_COPA_HEADER='{header}'")
+
+    # Completion branding
+    branding = config.get("_completion_branding", True)
+    lines.append(f"_COPA_COMPLETION_BRANDING='{'true' if branding else 'false'}'")
 
     # Suffix associative array
     lines.append("typeset -gA _COPA_SUFFIXES")
