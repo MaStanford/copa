@@ -1,6 +1,8 @@
 # Copa — Command Palette for your shell
 
 [![CI](https://github.com/MaStanford/copa/actions/workflows/ci.yml/badge.svg)](https://github.com/MaStanford/copa/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/copa)](https://pypi.org/project/copa/)
+[![Python](https://img.shields.io/pypi/pyversions/copa)](https://pypi.org/project/copa/)
 
 Copa tracks the commands you run, ranks them by frequency and recency, and gives you instant fuzzy search via fzf. Think of it as a smart, searchable, shareable upgrade to shell history.
 

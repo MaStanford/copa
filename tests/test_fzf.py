@@ -1,8 +1,7 @@
 """Tests for fzf format_lines hidden field and format_preview flags."""
 
-import pytest
-from copa.models import Command
 from copa.fzf import format_lines, format_preview
+from copa.models import Command
 
 
 class TestFormatLinesSearchField:
@@ -22,8 +21,13 @@ class TestFormatLinesSearchField:
         assert "Enable Bluetooth" in field4
 
     def test_hidden_field_contains_flags(self):
-        cmd = Command(id=1, command="flash", description="Flash it",
-                      flags={"--wipe": "Wipe userdata", "-v": "Verbose"}, frequency=1)
+        cmd = Command(
+            id=1,
+            command="flash",
+            description="Flash it",
+            flags={"--wipe": "Wipe userdata", "-v": "Verbose"},
+            frequency=1,
+        )
         lines = format_lines([cmd])
         field4 = lines[0].split("┃")[3]
         assert "--wipe" in field4
@@ -52,8 +56,7 @@ class TestFormatLinesSearchField:
     def test_multiple_commands(self):
         cmds = [
             Command(id=1, command="cmd1", description="desc1", frequency=1),
-            Command(id=2, command="cmd2", description="desc2",
-                    flags={"--flag": "Flag desc"}, frequency=2),
+            Command(id=2, command="cmd2", description="desc2", flags={"--flag": "Flag desc"}, frequency=2),
         ]
         lines = format_lines(cmds)
         assert len(lines) == 2
@@ -74,8 +77,13 @@ class TestFormatPreviewFlags:
         assert "Flags:" not in preview
 
     def test_flags_shown(self):
-        cmd = Command(id=1, command="flash", description="Flash it",
-                      flags={"--wipe": "Wipe userdata", "-v": "Verbose"}, frequency=1)
+        cmd = Command(
+            id=1,
+            command="flash",
+            description="Flash it",
+            flags={"--wipe": "Wipe userdata", "-v": "Verbose"},
+            frequency=1,
+        )
         preview = format_preview(cmd)
         assert "Flags:" in preview
         assert "--wipe" in preview
@@ -84,18 +92,16 @@ class TestFormatPreviewFlags:
         assert "Verbose" in preview
 
     def test_flags_section_alignment(self):
-        cmd = Command(id=1, command="test", description="Test",
-                      flags={"--long-flag-name": "Description"}, frequency=1)
+        cmd = Command(id=1, command="test", description="Test", flags={"--long-flag-name": "Description"}, frequency=1)
         preview = format_preview(cmd)
         lines = preview.split("\n")
-        flag_lines = [l for l in lines if "--long-flag-name" in l]
+        flag_lines = [line for line in lines if "--long-flag-name" in line]
         assert len(flag_lines) == 1
         # Should be indented
         assert flag_lines[0].startswith("  ")
 
     def test_preview_still_shows_description(self):
-        cmd = Command(id=1, command="test", description="Test description",
-                      flags={"--flag": "desc"}, frequency=1)
+        cmd = Command(id=1, command="test", description="Test description", flags={"--flag": "desc"}, frequency=1)
         preview = format_preview(cmd)
         assert "Test description" in preview
         assert "Command:" in preview

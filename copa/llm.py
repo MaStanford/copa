@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import json
 import shutil
 import subprocess
-
 
 PROMPT_TEMPLATE = (
     "Given this shell command, write a short description (under 15 words) "
@@ -14,9 +12,7 @@ PROMPT_TEMPLATE = (
 )
 
 
-def generate_description(
-    command: str, backend: str = "claude", model: str | None = None
-) -> str | None:
+def generate_description(command: str, backend: str = "claude", model: str | None = None) -> str | None:
     """Generate a description for a command using the configured LLM backend.
 
     Returns the generated description, or None on failure.
@@ -81,7 +77,7 @@ def _clean_response(text: str) -> str:
     # Remove leading "Description: " if the model echoed the prompt format
     for prefix in ("Description:", "description:"):
         if text.lower().startswith(prefix.lower()):
-            text = text[len(prefix):].strip()
+            text = text[len(prefix) :].strip()
     # Truncate to first line only
     text = text.split("\n")[0].strip()
     return text

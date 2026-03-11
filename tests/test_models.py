@@ -1,7 +1,7 @@
 """Tests for Command model flags support."""
 
 import json
-import pytest
+
 from copa.models import Command, CopaFile
 
 
@@ -13,10 +13,19 @@ class TestCommandFlags:
         assert cmd.flags == {}
 
     def test_from_row_no_flags(self):
-        row = {"id": 1, "command": "echo hi", "description": "", "frequency": 1,
-               "last_used": 0.0, "first_added": 0.0, "source": "manual",
-               "group_name": None, "shared_set": None, "is_pinned": 0,
-               "needs_description": 0}
+        row = {
+            "id": 1,
+            "command": "echo hi",
+            "description": "",
+            "frequency": 1,
+            "last_used": 0.0,
+            "first_added": 0.0,
+            "source": "manual",
+            "group_name": None,
+            "shared_set": None,
+            "is_pinned": 0,
+            "needs_description": 0,
+        }
         cmd = Command.from_row(row)
         assert cmd.flags == {}
 
@@ -67,8 +76,7 @@ class TestCopaFileFlags:
 
     def test_copa_file_with_flags(self):
         commands = [
-            {"command": "flash", "description": "Flash it", "tags": [],
-             "flags": {"--wipe": "Wipe userdata"}},
+            {"command": "flash", "description": "Flash it", "tags": [], "flags": {"--wipe": "Wipe userdata"}},
         ]
         cf = CopaFile(name="test", commands=commands)
         d = cf.to_dict()

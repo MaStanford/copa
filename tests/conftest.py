@@ -1,7 +1,9 @@
 """Shared test fixtures for Copa tests."""
 
-import pytest
 from pathlib import Path
+
+import pytest
+
 from copa.db import Database
 
 
@@ -18,9 +20,11 @@ def tmp_db(tmp_path):
 @pytest.fixture
 def tmp_script(tmp_path):
     """Create a factory for temporary script files."""
+
     def _make_script(name: str, content: str) -> Path:
         script = tmp_path / name
         script.write_text(content)
         script.chmod(0o755)
         return script
+
     return _make_script

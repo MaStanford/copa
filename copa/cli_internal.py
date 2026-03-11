@@ -25,6 +25,7 @@ def _open_tty():
     old_attrs = None
     try:
         import termios
+
         fd = tty.fileno()
         old_attrs = termios.tcgetattr(fd)
         new_attrs = termios.tcgetattr(fd)
@@ -44,6 +45,7 @@ def _close_tty(tty, old_attrs):
     if old_attrs is not None:
         try:
             import termios
+
             termios.tcsetattr(tty.fileno(), termios.TCSANOW, old_attrs)
         except (ImportError, termios.error):
             pass
@@ -61,7 +63,7 @@ def record(command: str):
 @click.command("_init", hidden=True)
 def init():
     """Initialize the Copa database."""
-    db = get_db()
+    get_db()
     click.echo("Copa database initialized.")
 
 
@@ -91,6 +93,7 @@ def preview(cmd_id: int):
         click.echo(f"Command {cmd_id} not found.")
         return
     from .scoring import compute_score
+
     cmd.score = compute_score(cmd)
     click.echo(format_preview(cmd))
 
@@ -145,9 +148,7 @@ def set_group(cmd_id: int):
         label = group_name or "(none)"
         tty_write(click.style(f"  → group set to: {label}", fg="green"))
     else:
-        tty_write(click.style(
-            f"  ✗ command already exists in group '{group_name}'", fg="red"
-        ))
+        tty_write(click.style(f"  ✗ command already exists in group '{group_name}'", fg="red"))
 
     _close_tty(tty, old_attrs)
 
@@ -238,9 +239,7 @@ def complete_word(words):
         # Single word: return unique first words from all commands matching the token
         token = words[0]
         cur = db.conn.cursor()
-        cur.execute(
-            "SELECT command, frequency FROM commands ORDER BY frequency DESC"
-        )
+        cur.execute("SELECT command, frequency FROM commands ORDER BY frequency DESC")
         seen: set[str] = set()
         for row in cur.fetchall():
             first_word = row["command"].split()[0] if row["command"].split() else ""
@@ -279,6 +278,7 @@ def complete_word(words):
 def mcp_cmd():
     """Run the MCP server (stdio transport)."""
     from .mcp_server import main
+
     main()
 
 

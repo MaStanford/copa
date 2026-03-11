@@ -15,6 +15,7 @@ def get_db() -> Database:
 
 # --- Shell completion helpers ---
 
+
 def complete_group(ctx, param, incomplete):
     """Complete group names from the database."""
     try:

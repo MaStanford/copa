@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 import shutil
 import subprocess
 import sys
@@ -145,7 +144,9 @@ def format_preview(cmd: Command) -> str:
 
 
 def fzf_list(
-    db: Database, mode: str = "all", group: str | None = None,
+    db: Database,
+    mode: str = "all",
+    group: str | None = None,
     shared_set: str | None = None,
 ) -> list[str]:
     """Generate fzf-compatible output lines.
@@ -193,15 +194,24 @@ def run_fzf(db: Database, mode: str = "all", group: str | None = None) -> str | 
             [
                 "fzf",
                 "--ansi",
-                "--delimiter", "┃",
-                "--with-nth", "2..3",
-                "--preview", preview_cmd,
-                "--preview-window", "right:40%:wrap",
-                "--header", f"Copa [{mode}] — Tab to cycle modes",
-                "--prompt", "copa> ",
-                "--height", "80%",
-                "--layout", "reverse",
-                "--bind", "enter:accept",
+                "--delimiter",
+                "┃",
+                "--with-nth",
+                "2..3",
+                "--preview",
+                preview_cmd,
+                "--preview-window",
+                "right:40%:wrap",
+                "--header",
+                f"Copa [{mode}] — Tab to cycle modes",
+                "--prompt",
+                "copa> ",
+                "--height",
+                "80%",
+                "--layout",
+                "reverse",
+                "--bind",
+                "enter:accept",
             ],
             input=input_text,
             capture_output=True,

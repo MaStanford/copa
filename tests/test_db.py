@@ -1,7 +1,7 @@
 """Tests for database flags support."""
 
 import json
-import pytest
+
 from copa.db import Database
 
 
@@ -52,22 +52,19 @@ class TestDbFlags:
         assert json.loads(raw) == flags
 
     def test_fts_search_finds_flag_description(self, tmp_db):
-        tmp_db.add_command("flash_all", description="Flash build",
-                           flags={"--wipe": "Wipe userdata before flashing"})
+        tmp_db.add_command("flash_all", description="Flash build", flags={"--wipe": "Wipe userdata before flashing"})
         results = tmp_db.search_commands("userdata")
         assert len(results) == 1
         assert results[0].command == "flash_all"
 
     def test_fts_search_finds_flag_name(self, tmp_db):
-        tmp_db.add_command("deploy", description="Deploy app",
-                           flags={"--verbose": "Enable verbose output"})
+        tmp_db.add_command("deploy", description="Deploy app", flags={"--verbose": "Enable verbose output"})
         results = tmp_db.search_commands("verbose")
         assert len(results) == 1
         assert results[0].command == "deploy"
 
     def test_fts_search_still_finds_description(self, tmp_db):
-        tmp_db.add_command("adb shell cmd bluetooth_manager enable",
-                           description="Enable Bluetooth on device")
+        tmp_db.add_command("adb shell cmd bluetooth_manager enable", description="Enable Bluetooth on device")
         results = tmp_db.search_commands("bluetooth")
         assert len(results) >= 1
         assert any(r.command == "adb shell cmd bluetooth_manager enable" for r in results)
@@ -93,11 +90,9 @@ class TestDbFlags:
     def test_flags_survive_duplicate_insert(self, tmp_db):
         """When adding a duplicate command in the same group, flags are preserved."""
         flags = {"--wipe": "Wipe it"}
-        cmd_id = tmp_db.add_command("flash", description="Flash",
-                                    group_name="test", flags=flags)
+        cmd_id = tmp_db.add_command("flash", description="Flash", group_name="test", flags=flags)
         # Add again to same group (triggers UPDATE path)
-        cmd_id2 = tmp_db.add_command("flash", description="",
-                                     group_name="test")
+        cmd_id2 = tmp_db.add_command("flash", description="", group_name="test")
         assert cmd_id == cmd_id2
         cmd = tmp_db.get_command(cmd_id)
         assert cmd.flags == flags

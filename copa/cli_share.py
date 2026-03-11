@@ -15,7 +15,13 @@ from .models import CopaFile
 
 
 @click.command()
-@click.option("-g", "--group", default=None, help="Group to export (prompted if omitted).", shell_complete=complete_group)
+@click.option(
+    "-g",
+    "--group",
+    default=None,
+    help="Group to export (prompted if omitted).",
+    shell_complete=complete_group,
+)
 @click.option("-o", "--output", type=click.Path(), default=None, help="Output file path (default: <group>.copa).")
 @click.option("-a", "--author", default="", help="Author name.")
 @click.option("-d", "--description", default="", help="Description of the command set.")
@@ -65,6 +71,7 @@ def create(group: str | None, output: str | None, author: str, description: str)
 
 
 # --- share subgroup ---
+
 
 @click.group()
 def share():
@@ -157,6 +164,7 @@ def share_sync(directory: str):
 
 
 # --- import ---
+
 
 @click.command("import")
 @click.argument("file", type=click.Path(exists=True))

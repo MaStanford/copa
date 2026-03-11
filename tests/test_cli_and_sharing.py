@@ -1,13 +1,13 @@
 """Tests for CLI add --flag and sharing flags round-trip."""
 
 import json
-import pytest
-from pathlib import Path
+
 from click.testing import CliRunner
+
 from copa.cli import cli
 from copa.db import Database
-from copa.sharing import import_shared_set, export_group, load_copa_file
 from copa.models import CopaFile
+from copa.sharing import export_group, import_shared_set, load_copa_file
 
 
 class TestCliAddFlags:
@@ -20,6 +20,7 @@ class TestCliAddFlags:
         # Patch get_db in every module that imports it
         import copa.cli
         import copa.cli_common
+
         monkeypatch.setattr(copa.cli_common, "get_db", lambda: db)
         monkeypatch.setattr(copa.cli, "get_db", lambda: db)
         return db
@@ -28,11 +29,17 @@ class TestCliAddFlags:
         db = self._make_db(tmp_path, monkeypatch)
 
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            "add", "flash_all",
-            "-d", "Flash AOSP build",
-            "-f", "--wipe: Wipe userdata",
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "add",
+                "flash_all",
+                "-d",
+                "Flash AOSP build",
+                "-f",
+                "--wipe: Wipe userdata",
+            ],
+        )
         assert result.exit_code == 0
         assert "Added" in result.output
         assert "flags: 1 documented" in result.output
@@ -47,11 +54,17 @@ class TestCliAddFlags:
         db = self._make_db(tmp_path, monkeypatch)
 
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            "add", "deploy",
-            "-f", "--verbose: Enable verbose output",
-            "-f", "-n, --dry-run: Show what would happen",
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "add",
+                "deploy",
+                "-f",
+                "--verbose: Enable verbose output",
+                "-f",
+                "-n, --dry-run: Show what would happen",
+            ],
+        )
         assert result.exit_code == 0
         assert "flags: 2 documented" in result.output
 
@@ -97,8 +110,7 @@ class TestSharingFlags:
 
     def test_export_includes_flags(self, tmp_db):
         flags = {"--wipe": "Wipe userdata", "-v": "Verbose"}
-        tmp_db.add_command("flash", description="Flash it",
-                           group_name="test-group", flags=flags)
+        tmp_db.add_command("flash", description="Flash it", group_name="test-group", flags=flags)
 
         copa_file = export_group(tmp_db, "test-group")
         assert len(copa_file.commands) == 1
@@ -112,12 +124,14 @@ class TestSharingFlags:
     def test_import_preserves_flags(self, tmp_db):
         copa_file = CopaFile(
             name="imported",
-            commands=[{
-                "command": "flash_all",
-                "description": "Flash build",
-                "tags": ["aosp"],
-                "flags": {"--wipe": "Wipe userdata", "-n": "Dry run"},
-            }],
+            commands=[
+                {
+                    "command": "flash_all",
+                    "description": "Flash build",
+                    "tags": ["aosp"],
+                    "flags": {"--wipe": "Wipe userdata", "-n": "Dry run"},
+                }
+            ],
         )
         count = import_shared_set(tmp_db, copa_file, source_path="/tmp/test.copa")
         assert count == 1
@@ -129,11 +143,13 @@ class TestSharingFlags:
     def test_import_without_flags(self, tmp_db):
         copa_file = CopaFile(
             name="imported",
-            commands=[{
-                "command": "echo hi",
-                "description": "Say hello",
-                "tags": [],
-            }],
+            commands=[
+                {
+                    "command": "echo hi",
+                    "description": "Say hello",
+                    "tags": [],
+                }
+            ],
         )
         count = import_shared_set(tmp_db, copa_file)
         assert count == 1
@@ -142,8 +158,7 @@ class TestSharingFlags:
 
     def test_export_import_round_trip(self, tmp_db, tmp_path):
         flags = {"-w, --wipe": "Wipe userdata", "--skip <parts>": "Skip partitions"}
-        tmp_db.add_command("flash_all", description="Flash build",
-                           group_name="roundtrip", flags=flags, tags=["aosp"])
+        tmp_db.add_command("flash_all", description="Flash build", group_name="roundtrip", flags=flags, tags=["aosp"])
 
         # Export
         copa_file = export_group(tmp_db, "roundtrip", author="tester")

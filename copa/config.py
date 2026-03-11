@@ -140,7 +140,18 @@ def emit_zsh_config(config: dict[str, str]) -> str:
 
     # Build header: Copa | ^R:cycle | ^G:& | ^O:2>&1 | ...
     header_parts = ["Copa", f"{_format_key_label('ctrl-r')}:cycle"]
-    for action in ("background", "merge_output", "pipe", "redirect", "chain", "suppress", "group", "describe", "flags", "filter_group"):
+    for action in (
+        "background",
+        "merge_output",
+        "pipe",
+        "redirect",
+        "chain",
+        "suppress",
+        "group",
+        "describe",
+        "flags",
+        "filter_group",
+    ):
         key = config.get(action, DEFAULT_KEYS[action])
         label = LABELS[action]
         header_parts.append(f"{_format_key_label(key)}:{label}")

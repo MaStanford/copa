@@ -148,7 +148,7 @@ def sync_directory(db: Database, directory: str) -> dict[str, int]:
             copa_file = load_copa_file(copa_path)
             count = import_shared_set(db, copa_file, source_path=str(copa_path))
             results[copa_path.name] = count
-        except (json.JSONDecodeError, KeyError) as e:
+        except (json.JSONDecodeError, KeyError):
             results[copa_path.name] = -1  # error indicator
 
     return results

@@ -29,6 +29,7 @@ dependencies = [
 [project.optional-dependencies]
 mcp = ["mcp"]
 ollama = ["requests"]
+dev = ["pytest", "ruff"]
 
 [project.urls]
 Homepage = "https://github.com/MaStanford/copa"
@@ -40,3 +41,14 @@ copa = "copa.cli:cli"
 
 [tool.setuptools.packages.find]
 include = ["copa*"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+per-file-ignores = {"copa/cli.py" = ["E402"]}
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

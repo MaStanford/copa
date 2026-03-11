@@ -10,8 +10,8 @@ import click
 from .cli_common import complete_group, complete_shared_set, complete_source, get_db
 from .scoring import rank_commands
 
-
 # --- Main group ---
+
 
 @click.group()
 @click.version_option(package_name="copa")
@@ -22,16 +22,15 @@ def cli():
 
 # --- add ---
 
+
 @cli.command()
 @click.argument("command")
 @click.option("-d", "--description", default="", help="Description of the command.")
 @click.option("-g", "--group", default=None, help="Group name.", shell_complete=complete_group)
 @click.option("-t", "--tag", multiple=True, help="Tags (can be repeated).")
 @click.option("-p", "--pin", is_flag=True, help="Pin this command.")
-@click.option("-f", "--flag", multiple=True,
-              help="Flag docs as 'flag: description' (repeatable).")
-def add(command: str, description: str, group: str | None, tag: tuple[str, ...],
-        pin: bool, flag: tuple[str, ...]):
+@click.option("-f", "--flag", multiple=True, help="Flag docs as 'flag: description' (repeatable).")
+def add(command: str, description: str, group: str | None, tag: tuple[str, ...], pin: bool, flag: tuple[str, ...]):
     """Save a command with optional description and group."""
     db = get_db()
 
@@ -62,6 +61,7 @@ def add(command: str, description: str, group: str | None, tag: tuple[str, ...],
 
 
 # --- list ---
+
 
 @cli.command("list")
 @click.option("-g", "--group", default=None, help="Filter by group.", shell_complete=complete_group)
@@ -105,6 +105,7 @@ def list_cmd(group: str | None, limit: int, source: str | None, shared_set: str 
 
 # --- search ---
 
+
 @cli.command()
 @click.argument("query")
 @click.option("-g", "--group", default=None, help="Filter by group.", shell_complete=complete_group)
@@ -132,6 +133,7 @@ def search(query: str, group: str | None, source: str | None, shared_set: str | 
 
 # --- remove ---
 
+
 @cli.command()
 @click.argument("cmd_id", type=int)
 def remove(cmd_id: int):
@@ -146,6 +148,7 @@ def remove(cmd_id: int):
 
 
 # --- stats ---
+
 
 @cli.command()
 def stats():
@@ -166,6 +169,7 @@ def stats():
 
 # --- sync ---
 
+
 @cli.command()
 @click.option("--history", type=click.Path(exists=True), default=None, help="Path to zsh history file.")
 def sync(history: str | None):
@@ -180,9 +184,15 @@ def sync(history: str | None):
 
 # --- scan ---
 
+
 @cli.command()
-@click.option("--dir", "directory", type=click.Path(exists=True), default=None,
-              help="Directory to scan (default: all $PATH directories).")
+@click.option(
+    "--dir",
+    "directory",
+    type=click.Path(exists=True),
+    default=None,
+    help="Directory to scan (default: all $PATH directories).",
+)
 def scan(directory: str | None):
     """Import script metadata from $PATH (supports #@ Description/Usage headers)."""
     from .scanner import scan_directory

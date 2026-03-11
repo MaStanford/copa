@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
 import sqlite3
 import time
 from pathlib import Path
@@ -147,8 +146,7 @@ class Database:
                    (command, description, frequency, last_used, first_added,
                     source, group_name, shared_set, needs_description, flags)
                    VALUES (?, ?, 1, ?, ?, ?, ?, ?, ?, ?)""",
-                (command, description, now, now, source, group_name,
-                 shared_set, int(needs_description), flags_json),
+                (command, description, now, now, source, group_name, shared_set, int(needs_description), flags_json),
             )
             cmd_id = cur.lastrowid
         except sqlite3.IntegrityError:
@@ -316,8 +314,11 @@ class Database:
         return commands
 
     def search_commands(
-        self, query: str, group_name: str | None = None,
-        source: str | None = None, shared_set: str | None = None,
+        self,
+        query: str,
+        group_name: str | None = None,
+        source: str | None = None,
+        shared_set: str | None = None,
         limit: int = 50,
     ) -> list[Command]:
         """FTS5 search across command text and descriptions."""
@@ -373,17 +374,13 @@ class Database:
     def get_groups(self) -> list[str]:
         """Get all unique group names."""
         cur = self.conn.cursor()
-        cur.execute(
-            "SELECT DISTINCT group_name FROM commands WHERE group_name IS NOT NULL ORDER BY group_name"
-        )
+        cur.execute("SELECT DISTINCT group_name FROM commands WHERE group_name IS NOT NULL ORDER BY group_name")
         return [row["group_name"] for row in cur.fetchall()]
 
     def get_sources(self) -> list[str]:
         """Get all unique source values."""
         cur = self.conn.cursor()
-        cur.execute(
-            "SELECT DISTINCT source FROM commands WHERE source IS NOT NULL ORDER BY source"
-        )
+        cur.execute("SELECT DISTINCT source FROM commands WHERE source IS NOT NULL ORDER BY source")
         return [row["source"] for row in cur.fetchall()]
 
     def get_stats(self) -> dict:
@@ -395,25 +392,15 @@ class Database:
         cur.execute("SELECT SUM(frequency) as total FROM commands")
         row = cur.fetchone()
         stats["total_uses"] = row["total"] or 0
-        cur.execute(
-            "SELECT COUNT(DISTINCT group_name) as total FROM commands WHERE group_name IS NOT NULL"
-        )
+        cur.execute("SELECT COUNT(DISTINCT group_name) as total FROM commands WHERE group_name IS NOT NULL")
         stats["total_groups"] = cur.fetchone()["total"]
-        cur.execute(
-            "SELECT COUNT(DISTINCT shared_set) as total FROM commands WHERE shared_set IS NOT NULL"
-        )
+        cur.execute("SELECT COUNT(DISTINCT shared_set) as total FROM commands WHERE shared_set IS NOT NULL")
         stats["shared_sets"] = cur.fetchone()["total"]
-        cur.execute(
-            "SELECT source, COUNT(*) as cnt FROM commands GROUP BY source ORDER BY cnt DESC"
-        )
+        cur.execute("SELECT source, COUNT(*) as cnt FROM commands GROUP BY source ORDER BY cnt DESC")
         stats["by_source"] = {row["source"]: row["cnt"] for row in cur.fetchall()}
-        cur.execute(
-            "SELECT COUNT(*) as total FROM commands WHERE needs_description = 1"
-        )
+        cur.execute("SELECT COUNT(*) as total FROM commands WHERE needs_description = 1")
         stats["needs_description"] = cur.fetchone()["total"]
-        cur.execute(
-            "SELECT COUNT(*) as total FROM commands WHERE is_pinned = 1"
-        )
+        cur.execute("SELECT COUNT(*) as total FROM commands WHERE is_pinned = 1")
         stats["pinned"] = cur.fetchone()["total"]
         return stats
 

@@ -2,21 +2,61 @@
 
 from __future__ import annotations
 
-from collections import Counter
-
 from .db import Database
 from .history import get_history_frequencies
 
 # Trivial commands to skip during auto-evolution
-TRIVIAL_COMMANDS = frozenset({
-    "ls", "ll", "la", "cd", "pwd", "clear", "exit", "quit",
-    "fg", "bg", "jobs", "history", "which", "whoami", "date",
-    "true", "false", "yes", "no", "echo", "cat", "less", "more",
-    "head", "tail", "wc", "sort", "uniq", "grep", "find",
-    "cp", "mv", "rm", "mkdir", "rmdir", "touch", "chmod", "chown",
-    "man", "help", "type", "alias", "unalias", "export",
-    "source", ".", "exec",
-})
+TRIVIAL_COMMANDS = frozenset(
+    {
+        "ls",
+        "ll",
+        "la",
+        "cd",
+        "pwd",
+        "clear",
+        "exit",
+        "quit",
+        "fg",
+        "bg",
+        "jobs",
+        "history",
+        "which",
+        "whoami",
+        "date",
+        "true",
+        "false",
+        "yes",
+        "no",
+        "echo",
+        "cat",
+        "less",
+        "more",
+        "head",
+        "tail",
+        "wc",
+        "sort",
+        "uniq",
+        "grep",
+        "find",
+        "cp",
+        "mv",
+        "rm",
+        "mkdir",
+        "rmdir",
+        "touch",
+        "chmod",
+        "chown",
+        "man",
+        "help",
+        "type",
+        "alias",
+        "unalias",
+        "export",
+        "source",
+        ".",
+        "exec",
+    }
+)
 
 
 def is_trivial(cmd: str) -> bool:

@@ -54,10 +54,12 @@ def evolve(top_k: int, auto_desc: bool):
                 failed += 1
 
         needs_review = len(added) - described
-        click.echo(f"\nAdded {len(added)} commands ({described} with auto-descriptions"
-                    f"{f', {needs_review} need manual review' if needs_review else ''}).")
+        click.echo(
+            f"\nAdded {len(added)} commands ({described} with auto-descriptions"
+            f"{f', {needs_review} need manual review' if needs_review else ''})."
+        )
     else:
-        click.echo(f"\nRun 'copa fix' to add descriptions.")
+        click.echo("\nRun 'copa fix' to add descriptions.")
 
 
 @click.command()
@@ -95,6 +97,7 @@ def configure():
                     click.echo(f"  Model '{model}' not found.")
                 if click.confirm(f"  Pull '{model}' now?"):
                     import subprocess
+
                     click.echo(f"  Pulling {model}...")
                     subprocess.run(["ollama", "pull", model])
 
@@ -175,7 +178,11 @@ def fix(auto_desc: bool):
             click.echo(click.style("  Generating...", dim=True), nl=False)
             suggestion = generate_description(cmd.command, backend=backend, model=model) or ""
             # Clear the "Generating..." text
-            click.echo(f"\r  Suggestion: {click.style(suggestion, fg='cyan')}" if suggestion else "\r  (no suggestion generated)")
+            click.echo(
+                f"\r  Suggestion: {click.style(suggestion, fg='cyan')}"
+                if suggestion
+                else "\r  (no suggestion generated)"
+            )
 
         if auto_desc and suggestion:
             desc = input(f"  Description [{suggestion}]: ").strip()

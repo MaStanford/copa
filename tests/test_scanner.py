@@ -1,8 +1,6 @@
 """Tests for scanner #@ Flag: protocol."""
 
-import pytest
-from pathlib import Path
-from copa.scanner import extract_description, _scan_single_directory
+from copa.scanner import _scan_single_directory, extract_description
 
 
 class TestExtractFlags:
@@ -16,10 +14,7 @@ class TestExtractFlags:
 
     def test_single_flag(self, tmp_script):
         content = (
-            "#!/bin/bash\n"
-            "#@ Description: Flash device\n"
-            "#@ Flag: --wipe: Wipe userdata before flashing\n"
-            "echo flashing\n"
+            "#!/bin/bash\n#@ Description: Flash device\n#@ Flag: --wipe: Wipe userdata before flashing\necho flashing\n"
         )
         script = tmp_script("flash.sh", content)
         desc, flags = extract_description(script)
@@ -44,11 +39,7 @@ class TestExtractFlags:
         assert flags["-n, --dry-run"] == "Show what would be done"
 
     def test_flag_without_description(self, tmp_script):
-        content = (
-            "#!/bin/bash\n"
-            "#@ Description: Test\n"
-            "#@ Flag: --verbose\n"
-        )
+        content = "#!/bin/bash\n#@ Description: Test\n#@ Flag: --verbose\n"
         script = tmp_script("test.sh", content)
         desc, flags = extract_description(script)
         assert flags == {"--verbose": ""}
@@ -71,9 +62,7 @@ class TestExtractFlags:
     def test_flags_without_description_header(self, tmp_script):
         """Flags are collected even when there's no #@ Description."""
         content = (
-            "#!/bin/bash\n"
-            "# A simple legacy comment that describes this\n"
-            "#@ Flag: --verbose: Enable verbose mode\n"
+            "#!/bin/bash\n# A simple legacy comment that describes this\n#@ Flag: --verbose: Enable verbose mode\n"
         )
         script = tmp_script("test.sh", content)
         desc, flags = extract_description(script)
@@ -124,10 +113,7 @@ class TestScanDirectory:
     def test_scan_captures_flags(self, tmp_db, tmp_path):
         script = tmp_path / "my-tool"
         script.write_text(
-            "#!/bin/bash\n"
-            "#@ Description: My tool\n"
-            "#@ Flag: --verbose: Enable verbose output\n"
-            "echo running\n"
+            "#!/bin/bash\n#@ Description: My tool\n#@ Flag: --verbose: Enable verbose output\necho running\n"
         )
         script.chmod(0o755)
 
