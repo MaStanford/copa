@@ -1,0 +1,63 @@
+{
+    "copa_version": "1.0",
+    "name": "k8s",
+    "description": "Kubernetes cluster management commands",
+    "author": "copa",
+    "commands": [
+        {
+            "command": "kubectl get pods",
+            "description": "List pods in current namespace"
+        },
+        {
+            "command": "kubectl get pods -A",
+            "description": "List pods across all namespaces"
+        },
+        {
+            "command": "kubectl describe pod",
+            "description": "Show detailed pod info and events"
+        },
+        {
+            "command": "kubectl logs -f",
+            "description": "Follow pod logs in real time",
+            "flags": {
+                "-f": "Follow log output",
+                "-c CONTAINER": "Specify container in multi-container pod",
+                "--previous": "Show logs from previous container instance",
+                "--tail N": "Show last N lines"
+            }
+        },
+        {
+            "command": "kubectl exec -it -- /bin/sh",
+            "description": "Open shell in a running pod"
+        },
+        {
+            "command": "kubectl apply -f",
+            "description": "Apply configuration from a YAML file"
+        },
+        {
+            "command": "kubectl delete pod",
+            "description": "Delete a pod (it will be recreated by the controller)"
+        },
+        {
+            "command": "kubectl get svc",
+            "description": "List services in current namespace"
+        },
+        {
+            "command": "kubectl port-forward",
+            "description": "Forward a local port to a pod",
+            "tags": ["debug"]
+        },
+        {
+            "command": "kubectl rollout restart deployment",
+            "description": "Restart all pods in a deployment"
+        },
+        {
+            "command": "kubectl top pods",
+            "description": "Show CPU and memory usage by pod"
+        },
+        {
+            "command": "kubectl config get-contexts",
+            "description": "List available cluster contexts"
+        }
+    ]
+}

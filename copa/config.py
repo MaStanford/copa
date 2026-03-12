@@ -84,8 +84,11 @@ def load_config(path: Path | None = None) -> dict:
     """
     config: dict = dict(DEFAULT_KEYS)
     config["_completion_branding"] = True  # default: show branding
-    config["_completion_mode"] = "fallback"  # default: only when native completers found nothing
+    config["_completion_mode"] = "hybrid"  # default: Copa + native completions shown together
     config["_continue_actions"] = set(DEFAULT_CONTINUE)  # default continue-vs-close split
+    config["_suggest_enabled"] = True  # default: inline suggestions on
+    config["_suggest_min_length"] = 2  # minimum chars before querying
+    config["_suggest_tab_accept"] = 2  # 1=direct accept, 2=open menu first
 
     if path is None:
         path = Path.home() / ".copa" / "config.toml"
@@ -130,6 +133,19 @@ def load_config(path: Path | None = None) -> dict:
                 name for name in continue_list
                 if isinstance(name, str) and name in SUFFIXES
             }
+
+    # [suggest] section — inline suggestion settings
+    suggest_section = data.get("suggest")
+    if isinstance(suggest_section, dict):
+        enabled = suggest_section.get("enabled")
+        if isinstance(enabled, bool):
+            config["_suggest_enabled"] = enabled
+        min_length = suggest_section.get("min_length")
+        if isinstance(min_length, int) and min_length >= 1:
+            config["_suggest_min_length"] = min_length
+        tab_accept = suggest_section.get("tab_accept")
+        if isinstance(tab_accept, int) and tab_accept in (1, 2):
+            config["_suggest_tab_accept"] = tab_accept
 
     keys_section = data.get("keys")
     if not isinstance(keys_section, dict):
@@ -227,6 +243,12 @@ def emit_zsh_config(config: dict[str, str]) -> str:
     lines.append(f"_COPA_COMPLETION_BRANDING='{'true' if branding else 'false'}'")
     completion_mode = config.get("_completion_mode", "fallback")
     lines.append(f"_COPA_COMPLETION_MODE='{completion_mode}'")
+
+    # Inline suggestion config
+    suggest_enabled = config.get("_suggest_enabled", True)
+    lines.append(f"_COPA_SUGGEST_ENABLED='{'true' if suggest_enabled else 'false'}'")
+    lines.append(f"_COPA_SUGGEST_MIN_LENGTH='{config.get('_suggest_min_length', 2)}'")
+    lines.append(f"_COPA_SUGGEST_TAB_ACCEPT='{config.get('_suggest_tab_accept', 2)}'")
 
     # Split suffixes into close (fzf exits) and continue (fzf re-opens)
     lines.append("typeset -gA _COPA_CLOSE_SUFFIXES")

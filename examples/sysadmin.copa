@@ -1,0 +1,70 @@
+{
+    "copa_version": "1.0",
+    "name": "sysadmin",
+    "description": "System administration and process management",
+    "author": "copa",
+    "commands": [
+        {
+            "command": "htop",
+            "description": "Interactive process viewer"
+        },
+        {
+            "command": "df -h",
+            "description": "Show disk usage in human-readable format"
+        },
+        {
+            "command": "du -sh *",
+            "description": "Show size of each item in current directory"
+        },
+        {
+            "command": "free -h",
+            "description": "Show memory usage (Linux)"
+        },
+        {
+            "command": "top -o %MEM",
+            "description": "Show processes sorted by memory usage"
+        },
+        {
+            "command": "ps aux | grep",
+            "description": "Find a running process by name"
+        },
+        {
+            "command": "kill -9",
+            "description": "Force kill a process by PID"
+        },
+        {
+            "command": "tail -f /var/log/syslog",
+            "description": "Follow system log in real time"
+        },
+        {
+            "command": "uptime",
+            "description": "Show system uptime and load averages"
+        },
+        {
+            "command": "chmod +x",
+            "description": "Make a file executable"
+        },
+        {
+            "command": "tar -czf archive.tar.gz",
+            "description": "Create a gzipped tar archive",
+            "flags": {
+                "-c": "Create archive",
+                "-z": "Compress with gzip",
+                "-f": "Specify output filename",
+                "-x": "Extract archive",
+                "-v": "Verbose output"
+            }
+        },
+        {
+            "command": "rsync -avz --progress",
+            "description": "Sync files with progress and compression",
+            "flags": {
+                "-a": "Archive mode (recursive, preserve permissions)",
+                "-v": "Verbose",
+                "-z": "Compress during transfer",
+                "--progress": "Show transfer progress",
+                "--delete": "Delete files in destination not in source"
+            }
+        }
+    ]
+}

@@ -265,6 +265,33 @@ def complete_word(words):
                 click.echo(candidate)
 
 
+@click.command("_suggest", hidden=True)
+@click.argument("prefix")
+def suggest(prefix: str):
+    """Return the best inline suggestion for a prefix."""
+    if not prefix or not prefix.strip():
+        return
+    db = get_db()
+    escaped = prefix.replace("%", "\\%").replace("_", "\\_")
+    cur = db.conn.cursor()
+    cur.execute(
+        "SELECT * FROM commands WHERE command LIKE ? ESCAPE '\\' ORDER BY frequency DESC LIMIT 20",
+        (escaped + "%",),
+    )
+    rows = cur.fetchall()
+    if not rows:
+        return
+    from .models import Command
+    from .scoring import compute_score
+
+    best = max(
+        (Command.from_row(dict(r)) for r in rows),
+        key=lambda c: compute_score(c),
+    )
+    if best.command != prefix:
+        click.echo(best.command)
+
+
 @click.command("mcp", hidden=True)
 def mcp_cmd():
     """Run the MCP server (stdio transport)."""
@@ -442,6 +469,7 @@ def register(cli):
     cli.add_command(set_group_direct)
     cli.add_command(next_group)
     cli.add_command(complete_word)
+    cli.add_command(suggest)
     cli.add_command(mcp_cmd)
     cli.add_command(completion)
     cli.add_command(fzf_config_cmd)

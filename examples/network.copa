@@ -1,0 +1,54 @@
+{
+    "copa_version": "1.0",
+    "name": "network",
+    "description": "Network diagnostics and troubleshooting",
+    "author": "copa",
+    "commands": [
+        {
+            "command": "curl -I",
+            "description": "Fetch HTTP headers only (check status codes)",
+            "flags": {
+                "-I, --head": "Fetch headers only",
+                "-s, --silent": "Silent mode",
+                "-o /dev/null": "Discard body output",
+                "-w '%{http_code}'": "Print only the status code"
+            }
+        },
+        {
+            "command": "curl -s ifconfig.me",
+            "description": "Get your public IP address"
+        },
+        {
+            "command": "dig +short",
+            "description": "DNS lookup — resolve domain to IP"
+        },
+        {
+            "command": "netstat -tlnp",
+            "description": "Show listening TCP ports with process info"
+        },
+        {
+            "command": "ss -tlnp",
+            "description": "Show listening TCP sockets (modern netstat)"
+        },
+        {
+            "command": "lsof -i :8080",
+            "description": "Find which process is using port 8080"
+        },
+        {
+            "command": "ping -c 4",
+            "description": "Send 4 ICMP pings to test connectivity"
+        },
+        {
+            "command": "traceroute",
+            "description": "Trace the network path to a host"
+        },
+        {
+            "command": "nslookup",
+            "description": "Query DNS nameserver for domain info"
+        },
+        {
+            "command": "wget -q -O -",
+            "description": "Download URL content to stdout quietly"
+        }
+    ]
+}

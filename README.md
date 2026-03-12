@@ -22,11 +22,14 @@ Copa tracks the commands you run, ranks them by frequency and recency, and gives
 - **MCP server** — expose your commands to Claude Code (or any MCP client)
 - **Zero latency** — precmd hook records usage in the background
 
+> **Note:** Copa requires **zsh**. It is not compatible with bash, fish, or PowerShell.
+
 ## Install
 
 ### Prerequisites
 
 - **Python 3.12+**
+- **zsh** — Copa's shell integration (precmd hooks, ZLE widgets, inline suggestions) is zsh-only
 - **fzf** — required for Ctrl+R command palette
 
 ```bash
@@ -180,9 +183,62 @@ This works automatically once `copa.zsh` is sourced — no extra setup needed. T
 
 Copa's own CLI completions (`copa li<TAB>` → `list`) continue to work as before via Click's built-in completion.
 
+## Inline Suggestions (Ghost Text)
+
+Copa shows grey ghost text after your cursor as you type — the best matching command from your database, ranked by frequency and recency. This works like fish shell's autosuggestions or zsh-autosuggestions, with zero plugin dependencies.
+
+### How it works
+
+As you type, Copa queries its database for commands starting with your current input and displays the highest-scored match as dim grey text after the cursor. The suggestion updates on every keystroke.
+
+```
+$ git pu█sh origin main     ← grey ghost text
+```
+
+### Keybindings
+
+| Key | Suggestion showing | No suggestion |
+|-----|-------------------|---------------|
+| Type chars | Insert char, re-fetch suggestion | Insert char, fetch suggestion |
+| Backspace | Delete char, **latch** (suppress suggestions) | Delete char normally |
+| **Tab** | `tab_accept=1`: accept full suggestion. `tab_accept=2` (default): first Tab highlights suggestion (cyan), second Tab accepts | If latched: unlatch + re-fetch suggestion. Else: normal tab completion |
+| **Down** | Highlight suggestion (enter confirming state) | History navigation |
+| **Right arrow** | Accept one word, re-fetch | Move cursor right |
+| Enter | Clear suggestion, execute | Execute |
+| Esc | Dismiss suggestion | Normal Esc |
+| Up | Clear suggestion, navigate history | History navigation |
+| Ctrl+R | Clear suggestion, open fzf | Open fzf |
+
+### Tab accept mode
+
+By default (`tab_accept = 2`), pressing Tab when a suggestion is showing highlights the ghost text (changes from dim grey to cyan/bold) to indicate it's ready to be accepted. Pressing Tab again accepts it into the buffer. Pressing Esc reverts to dim grey without accepting. This two-step flow gives you a visual confirmation before committing.
+
+Set `tab_accept = 1` to restore the old behavior where a single Tab directly accepts the suggestion.
+
+### Backspace latch
+
+Pressing Backspace clears the current suggestion and **latches** — suppresses further suggestions while you edit. This prevents suggestions from re-appearing as you retype after correcting a mistake. Ctrl+W (backward-kill-word) also latches.
+
+Press **Tab** to unlatch and re-enable suggestions. The next new prompt (Enter) also resets the latch automatically.
+
+### Configuration
+
+```toml
+# ~/.copa/config.toml
+[suggest]
+enabled = true       # set to false to disable inline suggestions
+min_length = 2       # minimum characters before querying (default: 2)
+tab_accept = 2       # 1 = Tab accepts directly, 2 = Tab opens menu first (default)
+```
+
+Inline suggestions are enabled by default. Set `enabled = false` to disable them entirely (zero performance overhead when disabled).
+
 ## Quick Start
 
 ```bash
+# Check your setup
+copa doctor
+
 # Import your shell history
 copa sync
 
@@ -192,14 +248,23 @@ copa add "adb shell cmd bluetooth_manager enable" -d "Enable Bluetooth" -g bluet
 # Add a command with flag documentation
 copa add "flash_all" -d "Flash AOSP build" -f "--wipe: Wipe userdata" -f "-v: Verbose"
 
-# Create a .copa file from a group (or scaffold an empty one)
-copa create -g bluetooth
+# Pin your most important commands to the top
+copa pin 42
+
+# Edit a command's metadata
+copa edit 42 -d "New description" -g mygroup
 
 # List top commands by score
 copa list
 
+# List as JSON (for scripting)
+copa list --json
+
 # Search by keyword
 copa search bluetooth
+
+# Create a .copa file from a group (or scaffold an empty one)
+copa create -g bluetooth
 
 # Auto-promote frequent commands from history
 copa evolve -k 20
@@ -326,12 +391,33 @@ copa create -g bluetooth
 copa share export bluetooth -o bluetooth.copa
 ```
 
-Share it with your team (via git, fbsource, or any file share):
+Share it with your team (via git, Slack, or any file share):
 
 ```bash
 copa share load bluetooth.copa
 copa share load /path/to/team/commands.copa
 copa share sync /path/to/team/copa-files/
+```
+
+### Example shared sets
+
+Copa ships with ready-to-use `.copa` files in the [`examples/`](examples/) directory:
+
+| File | Description |
+|------|-------------|
+| [`git.copa`](examples/git.copa) | Essential Git commands |
+| [`docker.copa`](examples/docker.copa) | Docker container management |
+| [`python-dev.copa`](examples/python-dev.copa) | Python development workflow |
+| [`network.copa`](examples/network.copa) | Network diagnostics |
+| [`adb.copa`](examples/adb.copa) | Android Debug Bridge |
+| [`k8s.copa`](examples/k8s.copa) | Kubernetes cluster management |
+| [`sysadmin.copa`](examples/sysadmin.copa) | System administration |
+
+Load any of them:
+
+```bash
+copa share load examples/git.copa
+copa share load examples/docker.copa
 ```
 
 ### Filtering by shared set
@@ -450,6 +536,41 @@ toggle_header = "ctrl-h"    # show/hide key hints
 [completion]
 mode = "fallback"           # fallback | hybrid | always | never
 branding = true             # show "Copa history" group header
+
+# Inline suggestions (ghost text)
+[suggest]
+enabled = true              # set to false to disable
+min_length = 2              # minimum chars before querying
+tab_accept = 2              # 1 = accept directly, 2 = open menu first
+
+# Composition key behavior (continue vs close)
+# "continue" keys re-open fzf so you can chain another command
+# All other composition keys close fzf immediately
+[composition]
+continue = ["pipe", "chain", "redirect"]  # default: |, &&, > re-open fzf
+```
+
+### Composition key behavior
+
+When you press a composition key (like Ctrl-A for `&&`), Copa can either **close fzf** (placing the command + operator in your prompt) or **continue** (appending the operator and re-opening fzf so you can select the next command to chain).
+
+By default, "connector" operators re-open fzf:
+- `pipe` (`|`) — continue
+- `chain` (`&&`) — continue
+- `redirect` (`>`) — continue
+
+And "terminal" operators close fzf:
+- `background` (`&`) — close
+- `merge_output` (`2>&1`) — close
+- `suppress` (`2>/dev/null`) — close
+
+When chaining, the prompt shows your accumulated command: `copa [git pull && ]>`.
+
+To revert to the old behavior (all keys close immediately), set:
+
+```toml
+[composition]
+continue = []
 ```
 
 ## CLI Reference
@@ -457,11 +578,15 @@ branding = true             # show "Copa history" group header
 | Command | Purpose |
 |---------|---------|
 | `copa add "cmd" -d "desc" -g group -f "flag: desc"` | Save a command (with optional flags) |
-| `copa create -g group [-o file]` | Create a .copa file from a group |
-| `copa list [-g group] [-s source] [--set name]` | List by score |
-| `copa search "query" [-g group] [-s source] [--set name]` | FTS search |
+| `copa edit ID [-d desc] [-g group] [-f flags] [--pin]` | Edit a command's metadata |
 | `copa remove ID` | Remove a command |
+| `copa pin ID` | Pin a command to the top |
+| `copa unpin ID` | Unpin a command |
+| `copa list [-g group] [-s source] [--set name] [--json]` | List by score |
+| `copa search "query" [-g group] [--set name] [--json]` | FTS search |
+| `copa create -g group [-o file]` | Create a .copa file from a group |
 | `copa stats` | Usage statistics |
+| `copa doctor` | Check setup and diagnose issues |
 | `copa sync` | Import from zsh history |
 | `copa scan [--dir path]` | Import script metadata from $PATH |
 | `copa evolve [-k 20] [--auto]` | Auto-add frequent commands (with optional LLM descriptions) |
@@ -473,6 +598,7 @@ branding = true             # show "Copa history" group header
 | `copa share list` | List shared sets |
 | `copa share sync DIR` | Sync .copa files from dir |
 | `copa import FILE [-g group]` | Import commands from markdown |
+| `copa uninstall` | Remove Copa data and show cleanup steps |
 
 ## How Scoring Works
 

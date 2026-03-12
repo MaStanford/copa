@@ -1,0 +1,83 @@
+{
+    "copa_version": "1.0",
+    "name": "adb",
+    "description": "Android Debug Bridge commands for device development",
+    "author": "copa",
+    "commands": [
+        {
+            "command": "adb devices",
+            "description": "List connected Android devices"
+        },
+        {
+            "command": "adb shell",
+            "description": "Open interactive shell on device"
+        },
+        {
+            "command": "adb logcat",
+            "description": "Stream device logs in real time",
+            "flags": {
+                "-s TAG": "Filter by tag",
+                "-c": "Clear the log buffer",
+                "--pid=PID": "Filter by process ID",
+                "*:E": "Show only errors"
+            }
+        },
+        {
+            "command": "adb install -r",
+            "description": "Install APK (replace existing)",
+            "flags": {
+                "-r": "Replace existing application",
+                "-d": "Allow version downgrade",
+                "-g": "Grant all runtime permissions"
+            }
+        },
+        {
+            "command": "adb push",
+            "description": "Copy file from host to device"
+        },
+        {
+            "command": "adb pull",
+            "description": "Copy file from device to host"
+        },
+        {
+            "command": "adb shell dumpsys battery",
+            "description": "Show battery status and health"
+        },
+        {
+            "command": "adb shell pm list packages",
+            "description": "List all installed packages"
+        },
+        {
+            "command": "adb shell settings get global",
+            "description": "Read a global system setting"
+        },
+        {
+            "command": "adb shell input text",
+            "description": "Type text on the device"
+        },
+        {
+            "command": "adb shell screencap /sdcard/screen.png",
+            "description": "Take a screenshot on the device"
+        },
+        {
+            "command": "adb reboot bootloader",
+            "description": "Reboot device into fastboot mode"
+        },
+        {
+            "command": "adb bugreport",
+            "description": "Capture a full bug report zip"
+        },
+        {
+            "command": "fastboot devices",
+            "description": "List devices in fastboot mode"
+        },
+        {
+            "command": "fastboot flash",
+            "description": "Flash a partition image to device",
+            "flags": {
+                "--slot=all": "Flash to both A/B slots",
+                "-w": "Wipe userdata"
+            }
+        }
+    ]
+}

@@ -1,0 +1,62 @@
+{
+    "copa_version": "1.0",
+    "name": "python-dev",
+    "description": "Python development workflow commands",
+    "author": "copa",
+    "commands": [
+        {
+            "command": "python3 -m venv .venv",
+            "description": "Create a virtual environment"
+        },
+        {
+            "command": "source .venv/bin/activate",
+            "description": "Activate the virtual environment"
+        },
+        {
+            "command": "pip install -e '.[dev]'",
+            "description": "Install package in editable mode with dev deps"
+        },
+        {
+            "command": "pip freeze > requirements.txt",
+            "description": "Export installed packages to requirements file"
+        },
+        {
+            "command": "python3 -m pytest -v",
+            "description": "Run tests with verbose output",
+            "flags": {
+                "-v, --verbose": "Verbose test names",
+                "-x": "Stop on first failure",
+                "-k EXPR": "Run tests matching expression",
+                "--tb=short": "Shorter tracebacks"
+            }
+        },
+        {
+            "command": "python3 -m pytest --cov=src --cov-report=term-missing",
+            "description": "Run tests with coverage report"
+        },
+        {
+            "command": "ruff check --fix .",
+            "description": "Lint and auto-fix Python code"
+        },
+        {
+            "command": "ruff format .",
+            "description": "Auto-format Python code"
+        },
+        {
+            "command": "python3 -m build",
+            "description": "Build source and wheel distributions"
+        },
+        {
+            "command": "twine upload dist/*",
+            "description": "Upload package to PyPI"
+        },
+        {
+            "command": "python3 -m http.server 8000",
+            "description": "Start a local HTTP server in current directory"
+        },
+        {
+            "command": "python3 -c \"import json, sys; print(json.dumps(json.load(sys.stdin), indent=2))\"",
+            "description": "Pretty-print JSON from stdin"
+        }
+    ]
+}

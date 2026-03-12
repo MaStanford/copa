@@ -1,0 +1,58 @@
+{
+    "copa_version": "1.0",
+    "name": "docker",
+    "description": "Docker container management commands",
+    "author": "copa",
+    "commands": [
+        {
+            "command": "docker ps",
+            "description": "List running containers"
+        },
+        {
+            "command": "docker ps -a",
+            "description": "List all containers including stopped"
+        },
+        {
+            "command": "docker images",
+            "description": "List local Docker images"
+        },
+        {
+            "command": "docker logs -f",
+            "description": "Follow container logs in real time",
+            "flags": {
+                "-f, --follow": "Follow log output",
+                "--tail N": "Show last N lines",
+                "--since": "Show logs since timestamp"
+            }
+        },
+        {
+            "command": "docker exec -it",
+            "description": "Open interactive shell in a running container"
+        },
+        {
+            "command": "docker compose up -d",
+            "description": "Start services in detached mode"
+        },
+        {
+            "command": "docker compose down",
+            "description": "Stop and remove containers, networks"
+        },
+        {
+            "command": "docker system prune -a",
+            "description": "Remove all unused images, containers, and networks"
+        },
+        {
+            "command": "docker build -t",
+            "description": "Build image from Dockerfile with a tag",
+            "flags": {
+                "-t, --tag": "Name and tag the image",
+                "--no-cache": "Build without using cache",
+                "-f": "Specify Dockerfile path"
+            }
+        },
+        {
+            "command": "docker stats",
+            "description": "Live CPU/memory/network usage for containers"
+        }
+    ]
+}

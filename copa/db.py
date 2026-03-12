@@ -116,6 +116,9 @@ class Database:
         cur.executescript(FTS_SQL)
         cur.executescript(FTS_TRIGGERS)
 
+        # Index on command column for LIKE prefix queries (_suggest)
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_commands_command ON commands(command)")
+
         # Rebuild FTS content from existing data
         cur.execute("""
             INSERT INTO commands_fts(rowid, command, description, flags)

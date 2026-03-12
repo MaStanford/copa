@@ -1,0 +1,60 @@
+{
+    "copa_version": "1.0",
+    "name": "git",
+    "description": "Essential Git commands for everyday development",
+    "author": "copa",
+    "commands": [
+        {
+            "command": "git status",
+            "description": "Show working tree status"
+        },
+        {
+            "command": "git diff --staged",
+            "description": "Show staged changes before committing"
+        },
+        {
+            "command": "git log --oneline --graph --all",
+            "description": "Visualize branch history as a graph"
+        },
+        {
+            "command": "git stash",
+            "description": "Stash uncommitted changes for later"
+        },
+        {
+            "command": "git stash pop",
+            "description": "Restore most recent stashed changes"
+        },
+        {
+            "command": "git rebase -i HEAD~5",
+            "description": "Interactive rebase last 5 commits"
+        },
+        {
+            "command": "git cherry-pick",
+            "description": "Apply a commit from another branch",
+            "flags": {
+                "-n, --no-commit": "Apply changes without committing",
+                "-x": "Append cherry-pick source info to commit message"
+            }
+        },
+        {
+            "command": "git bisect start",
+            "description": "Start binary search for a bad commit"
+        },
+        {
+            "command": "git reflog",
+            "description": "Show history of HEAD changes (recover lost commits)"
+        },
+        {
+            "command": "git clean -fd",
+            "description": "Remove untracked files and directories"
+        },
+        {
+            "command": "git blame",
+            "description": "Show who last modified each line of a file"
+        },
+        {
+            "command": "git remote -v",
+            "description": "List remote repositories with URLs"
+        }
+    ]
+}

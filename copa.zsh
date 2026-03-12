@@ -37,7 +37,10 @@ eval "$(copa _fzf-config 2>/dev/null)" || {
   _COPA_HEIGHT='80%'
   _COPA_PREVIEW_SIZE='40%'
   _COPA_COMPLETION_BRANDING='true'
-  _COPA_COMPLETION_MODE='fallback'
+  _COPA_COMPLETION_MODE='hybrid'
+  _COPA_SUGGEST_ENABLED='true'
+  _COPA_SUGGEST_MIN_LENGTH='2'
+  _COPA_SUGGEST_TAB_ACCEPT='2'
   _COPA_HEADER=$'Copa | ^R:cycle | ^V:& | ^O:2>&1 | ^X:| | ^T:> | ^A:&& | ^/:quiet | ^H:keys\n^G:grp | ^D:desc | ^F:flag | ^S:scope | ^N:↻grp'
   typeset -gA _COPA_CLOSE_SUFFIXES
   _COPA_CLOSE_SUFFIXES[ctrl-v]=' &'
@@ -70,6 +73,7 @@ add-zsh-hook precmd _copa_precmd
 # Composition keys (configured via copa _fzf-config) append shell operators.
 # Requires fzf: brew install fzf
 _copa_fzf_widget() {
+  [[ "$_COPA_SUGGEST_ENABLED" == 'true' ]] && _copa_suggest_clear
   if ! command -v fzf &>/dev/null; then
     zle -M "Copa: fzf not found. Install with: brew install fzf"
     return 1
@@ -296,12 +300,27 @@ eval "$(copa completion zsh)"
 if [[ "$_COPA_COMPLETION_MODE" != 'never' ]]; then
 
 _copa_history_complete() {
+    # Hoist pending inline suggestion as a completion candidate
+    if [[ -n "$_COPA_SUGGEST_PENDING" ]]; then
+        local pending="$_COPA_SUGGEST_PENDING"
+        _COPA_SUGGEST_PENDING=""
+        local cur_word="${words[CURRENT]}"
+        local prefix_len=$(( ${#LBUFFER} - ${#cur_word} ))
+        local insert_text="${pending:$prefix_len}"
+        if [[ -n "$insert_text" ]]; then
+            compadd -U -Q -V 'copa-suggestion' -X 'SUGGESTED' -o nosort -- "$insert_text"
+        fi
+        compstate[list]='list force'
+    fi
     # In fallback mode, only show when native completers found nothing
     if [[ "$_COPA_COMPLETION_MODE" == 'fallback' ]]; then
         (( compstate[nmatches] > 0 )) && return
     fi
-    # Skip empty tokens (bare <TAB> with no partial input)
-    [[ -z "${words[CURRENT]}" ]] && return
+    # Skip bare <TAB> on empty line; allow empty subcommand completion in hybrid/always
+    if [[ -z "${words[CURRENT]}" ]]; then
+        (( CURRENT <= 1 )) && return
+        [[ "$_COPA_COMPLETION_MODE" == 'fallback' ]] && return
+    fi
     # Skip internal copa commands
     [[ "${words[CURRENT]}" == _copa_* ]] && return
     local -a results
@@ -309,10 +328,10 @@ _copa_history_complete() {
     if (( ${#results} )); then
         if [[ "$_COPA_COMPLETION_MODE" == 'always' ]]; then
             # Replace: clear native matches, add only Copa results
-            compadd -U -V 'copa-history' -o nosort -- "${results[@]}"
+            compadd -U -V 'copa-history' -X 'COPA HISTORY' -o nosort -- "${results[@]}"
         else
             # fallback & hybrid: add Copa results as a separate group
-            compadd -V 'copa-history' -o nosort -- "${results[@]}"
+            compadd -V 'copa-history' -X 'COPA HISTORY' -o nosort -- "${results[@]}"
         fi
     fi
 }
@@ -324,10 +343,246 @@ _copa_history_complete() {
     if (( ! ${cur[(Ie)_copa_history_complete]} )); then
         zstyle ':completion:*' completer ${cur:-_complete} _copa_history_complete
     fi
-    # Copa completion branding: show "Copa history" header when branding is enabled
+    # Enable group separation so Copa results appear as a distinct section
+    zstyle ':completion:*' group-name ''
+    # Copa suggestion first, then Copa history, then native completions
+    zstyle ':completion:*' group-order copa-suggestion copa-history
+    # Interactive menu with highlighting; Tab accepts the focused item
+    zstyle ':completion:*' menu select
+    zmodload zsh/complist 2>/dev/null
+    bindkey -M menuselect '^I' .accept-line
+    # Raise threshold before "show all N?" prompt
+    LISTMAX=200
+    # Copa completion branding: show group description headers
     if [[ "$_COPA_COMPLETION_BRANDING" != 'false' ]]; then
-        zstyle ':completion:*:*:*:copa-history' group-header '%F{magenta}-- Copa history --%f'
+        zstyle ':completion:*:descriptions' format '%F{cyan}%B──── %d ────%b%f'
     fi
 }
 
 fi  # end _COPA_COMPLETION_MODE != 'never'
+
+# --- Inline suggestions (ghost text) ---
+# Shows grey suggestion text after the cursor as you type.
+# Controlled by _COPA_SUGGEST_ENABLED (set via copa _fzf-config).
+if [[ "$_COPA_SUGGEST_ENABLED" == 'true' ]]; then
+
+typeset -g _COPA_SUGGESTION=""
+typeset -g _COPA_SUGGEST_LATCHED=0  # 1 = suppressed (backspace latch)
+typeset -g _COPA_SUGGEST_PENDING=""  # full suggestion passed to completion system
+
+# _copa_suggest_clear is always defined (used by _copa_fzf_widget)
+_copa_suggest_clear() {
+  _COPA_SUGGESTION=""
+  _COPA_SUGGEST_PENDING=""
+  POSTDISPLAY=""
+  region_highlight=()
+}
+
+_copa_suggest_fetch() {
+  _COPA_SUGGESTION=""
+  _COPA_SUGGEST_PENDING=""
+  POSTDISPLAY=""
+  region_highlight=()
+  (( _COPA_SUGGEST_LATCHED )) && return  # suppressed by backspace latch
+  (( ${#BUFFER} < _COPA_SUGGEST_MIN_LENGTH )) && return
+  (( CURSOR != ${#BUFFER} )) && return  # skip if cursor not at end
+  local result
+  result=$(copa _suggest "$BUFFER" 2>/dev/null)
+  if [[ -n "$result" && "$result" != "$BUFFER" ]]; then
+    _COPA_SUGGESTION="$result"
+    POSTDISPLAY="${result:${#BUFFER}}"
+    region_highlight=("P0 ${#POSTDISPLAY} fg=8")
+  fi
+}
+
+# --- Widget wrappers ---
+
+# self-insert: type a character, then fetch suggestion
+_copa_suggest_self_insert() {
+  zle .self-insert
+  _copa_suggest_fetch
+}
+zle -N self-insert _copa_suggest_self_insert
+
+# backward-delete-char (Backspace): latch — suppress suggestions until Tab
+_copa_suggest_backward_delete_char() {
+  _COPA_SUGGEST_LATCHED=1
+  _copa_suggest_clear
+  zle .backward-delete-char
+}
+zle -N backward-delete-char _copa_suggest_backward_delete_char
+
+# Tab: accept suggestion or open completion menu.
+# Uses menu-complete (not expand-or-complete) to enter menu-select
+# mode immediately on the first Tab press.
+_copa_suggest_expand_or_complete() {
+  if [[ -n "$_COPA_SUGGESTION" ]]; then
+    if [[ "$_COPA_SUGGEST_TAB_ACCEPT" == '1' ]]; then
+      # tab_accept=1: directly accept the suggestion
+      BUFFER="$_COPA_SUGGESTION"
+      CURSOR=${#BUFFER}
+      _copa_suggest_clear
+    else
+      # tab_accept=2: open completion menu with suggestion hoisted to top
+      local pending="$_COPA_SUGGESTION"
+      _copa_suggest_clear
+      _COPA_SUGGEST_PENDING="$pending"
+      zle menu-complete
+      _copa_suggest_fetch  # re-suggest after menu closes
+    fi
+    return
+  fi
+  if (( _COPA_SUGGEST_LATCHED )); then
+    _COPA_SUGGEST_LATCHED=0
+    _copa_suggest_fetch
+    return
+  fi
+  zle menu-complete
+  _copa_suggest_fetch  # re-suggest after menu closes
+}
+zle -N _copa_suggest_expand_or_complete
+bindkey '^I' _copa_suggest_expand_or_complete
+
+# forward-char (Right arrow): accept one word if ghost text showing at EOL
+_copa_suggest_forward_char() {
+  if [[ -n "$POSTDISPLAY" && -n "$_COPA_SUGGESTION" && $CURSOR -eq ${#BUFFER} ]]; then
+    # Accept one word from the suggestion
+    local suffix="${_COPA_SUGGESTION:${#BUFFER}}"
+    local word
+    # Extract leading whitespace + next word
+    if [[ "$suffix" =~ ^[[:space:]]*[^[:space:]]+ ]]; then
+      word="$MATCH"
+    else
+      word="$suffix"
+    fi
+    BUFFER="${BUFFER}${word}"
+    CURSOR=${#BUFFER}
+    # Update ghost text from existing suggestion (no re-query, no flicker)
+    local remaining="${_COPA_SUGGESTION:${#BUFFER}}"
+    if [[ -n "$remaining" ]]; then
+      POSTDISPLAY="$remaining"
+      region_highlight=("P0 ${#POSTDISPLAY} fg=8")
+    else
+      # Fully accepted; clear and re-fetch for extended suggestions
+      _copa_suggest_clear
+      _COPA_SUGGEST_LATCHED=0
+      _copa_suggest_fetch
+    fi
+  else
+    zle .forward-char
+  fi
+}
+zle -N forward-char _copa_suggest_forward_char
+
+# forward-word: same as forward-char when ghost text showing
+_copa_suggest_forward_word() {
+  if [[ -n "$POSTDISPLAY" && -n "$_COPA_SUGGESTION" && $CURSOR -eq ${#BUFFER} ]]; then
+    _copa_suggest_forward_char
+  else
+    zle .forward-word
+  fi
+}
+zle -N forward-word _copa_suggest_forward_word
+
+# accept-line (Enter): clear suggestion + latch, then execute
+_copa_suggest_accept_line() {
+  _copa_suggest_clear
+  _COPA_SUGGEST_LATCHED=0
+  zle .accept-line
+}
+zle -N accept-line _copa_suggest_accept_line
+
+# send-break (Esc): dismiss ghost text suggestion or normal
+_copa_suggest_send_break() {
+  if [[ -n "$POSTDISPLAY" && -n "$_COPA_SUGGESTION" ]]; then
+    _copa_suggest_clear
+    zle -R  # redraw to remove ghost text
+  else
+    _COPA_SUGGESTION=""  # clear stored suggestion silently
+    zle .send-break
+  fi
+}
+zle -N send-break _copa_suggest_send_break
+
+# History navigation: clear suggestion then call original
+_copa_suggest_up_line_or_history() {
+  _copa_suggest_clear
+  zle .up-line-or-history
+}
+zle -N up-line-or-history _copa_suggest_up_line_or_history
+
+_copa_suggest_down_line_or_history() {
+  if [[ -n "$_COPA_SUGGESTION" ]]; then
+    # Suggestion showing: open completion menu with suggestion at top
+    local pending="$_COPA_SUGGESTION"
+    _copa_suggest_clear
+    _COPA_SUGGEST_PENDING="$pending"
+    zle menu-complete
+    _copa_suggest_fetch
+  else
+    zle .down-line-or-history
+  fi
+}
+zle -N down-line-or-history _copa_suggest_down_line_or_history
+
+_copa_suggest_up_line_or_search() {
+  _copa_suggest_clear
+  zle .up-line-or-search
+}
+zle -N up-line-or-search _copa_suggest_up_line_or_search
+
+_copa_suggest_down_line_or_search() {
+  if [[ -n "$_COPA_SUGGESTION" ]]; then
+    # Suggestion showing: open completion menu with suggestion at top
+    local pending="$_COPA_SUGGESTION"
+    _copa_suggest_clear
+    _COPA_SUGGEST_PENDING="$pending"
+    zle menu-complete
+    _copa_suggest_fetch
+  else
+    zle .down-line-or-search
+  fi
+}
+zle -N down-line-or-search _copa_suggest_down_line_or_search
+
+# Editing operations: backward-kill latches, forward operations re-fetch
+_copa_suggest_backward_kill_word() {
+  _COPA_SUGGEST_LATCHED=1
+  _copa_suggest_clear
+  zle .backward-kill-word
+}
+zle -N backward-kill-word _copa_suggest_backward_kill_word
+
+_copa_suggest_kill_word() {
+  zle .kill-word
+  _copa_suggest_fetch
+}
+zle -N kill-word _copa_suggest_kill_word
+
+_copa_suggest_kill_line() {
+  zle .kill-line
+  _copa_suggest_fetch
+}
+zle -N kill-line _copa_suggest_kill_line
+
+_copa_suggest_backward_kill_line() {
+  _COPA_SUGGEST_LATCHED=1
+  _copa_suggest_clear
+  zle .backward-kill-line
+}
+zle -N backward-kill-line _copa_suggest_backward_kill_line
+
+_copa_suggest_kill_whole_line() {
+  _COPA_SUGGEST_LATCHED=1
+  _copa_suggest_clear
+  zle .kill-whole-line
+}
+zle -N kill-whole-line _copa_suggest_kill_whole_line
+
+_copa_suggest_yank() {
+  zle .yank
+  _copa_suggest_fetch
+}
+zle -N yank _copa_suggest_yank
+
+fi  # end _COPA_SUGGEST_ENABLED == 'true'

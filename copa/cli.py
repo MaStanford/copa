@@ -2,13 +2,40 @@
 
 from __future__ import annotations
 
+import json
+import shutil
 import sys
 from pathlib import Path
 
 import click
 
 from .cli_common import complete_group, complete_shared_set, complete_source, get_db
+from .models import Command
 from .scoring import rank_commands
+
+
+def _cmd_to_json(cmd: Command) -> dict:
+    """Convert a Command to a JSON-serializable dict."""
+    d: dict = {
+        "id": cmd.id,
+        "command": cmd.command,
+        "description": cmd.description,
+        "frequency": cmd.frequency,
+        "score": round(cmd.score, 2),
+        "source": cmd.source,
+    }
+    if cmd.group_name:
+        d["group"] = cmd.group_name
+    if cmd.shared_set:
+        d["shared_set"] = cmd.shared_set
+    if cmd.is_pinned:
+        d["pinned"] = True
+    if cmd.tags:
+        d["tags"] = cmd.tags
+    if cmd.flags:
+        d["flags"] = cmd.flags
+    return d
+
 
 # --- Main group ---
 
@@ -127,7 +154,15 @@ def add(command: str, description: str, group: str | None, tag: tuple[str, ...],
 @click.option("-s", "--source", default=None, help="Filter by source.", shell_complete=complete_source)
 @click.option("--set", "shared_set", default=None, help="Filter by shared set.", shell_complete=complete_shared_set)
 @click.option("--needs-desc", is_flag=True, help="Show only commands needing description.")
-def list_cmd(group: str | None, limit: int, source: str | None, shared_set: str | None, needs_desc: bool):
+@click.option("--json", "as_json", is_flag=True, help="Output as JSON.")
+def list_cmd(
+    group: str | None,
+    limit: int,
+    source: str | None,
+    shared_set: str | None,
+    needs_desc: bool,
+    as_json: bool,
+):
     """List commands ranked by score."""
     db = get_db()
     commands = db.list_commands(
@@ -139,7 +174,14 @@ def list_cmd(group: str | None, limit: int, source: str | None, shared_set: str 
     )
     ranked = rank_commands(commands)
     if not ranked:
-        click.echo("No commands found.")
+        if as_json:
+            click.echo("[]")
+        else:
+            click.echo("No commands found.")
+        return
+
+    if as_json:
+        click.echo(json.dumps([_cmd_to_json(c) for c in ranked], indent=2))
         return
 
     for cmd in ranked:
@@ -170,13 +212,21 @@ def list_cmd(group: str | None, limit: int, source: str | None, shared_set: str 
 @click.option("-s", "--source", default=None, help="Filter by source.", shell_complete=complete_source)
 @click.option("--set", "shared_set", default=None, help="Filter by shared set.", shell_complete=complete_shared_set)
 @click.option("-n", "--limit", default=20, help="Max results.")
-def search(query: str, group: str | None, source: str | None, shared_set: str | None, limit: int):
+@click.option("--json", "as_json", is_flag=True, help="Output as JSON.")
+def search(query: str, group: str | None, source: str | None, shared_set: str | None, limit: int, as_json: bool):
     """Search commands by keyword (FTS)."""
     db = get_db()
     commands = db.search_commands(query, group_name=group, source=source, shared_set=shared_set, limit=limit)
     ranked = rank_commands(commands)
     if not ranked:
-        click.echo(f"No commands matching '{query}'.")
+        if as_json:
+            click.echo("[]")
+        else:
+            click.echo(f"No commands matching '{query}'.")
+        return
+
+    if as_json:
+        click.echo(json.dumps([_cmd_to_json(c) for c in ranked], indent=2))
         return
 
     for cmd in ranked:
@@ -259,6 +309,148 @@ def scan(directory: str | None):
     dir_path = Path(directory) if directory else None
     added = scan_directory(db, dir_path)
     click.echo(f"Scanned: {added} scripts added.")
+
+
+# --- pin / unpin ---
+
+
+@cli.command()
+@click.argument("cmd_id", type=int)
+def pin(cmd_id: int):
+    """Pin a command so it always appears at the top."""
+    db = get_db()
+    cmd = db.get_command(cmd_id)
+    if not cmd:
+        click.echo(f"Command {cmd_id} not found.", err=True)
+        sys.exit(1)
+    db.pin_command(cmd_id, True)
+    click.echo(f"Pinned [{cmd_id}]: {cmd.command}")
+
+
+@cli.command()
+@click.argument("cmd_id", type=int)
+def unpin(cmd_id: int):
+    """Unpin a command."""
+    db = get_db()
+    cmd = db.get_command(cmd_id)
+    if not cmd:
+        click.echo(f"Command {cmd_id} not found.", err=True)
+        sys.exit(1)
+    db.pin_command(cmd_id, False)
+    click.echo(f"Unpinned [{cmd_id}]: {cmd.command}")
+
+
+# --- edit ---
+
+
+@cli.command()
+@click.argument("cmd_id", type=int)
+@click.option("-d", "--description", default=None, help="New description.")
+@click.option("-g", "--group", default=None, help="New group name (use '' to clear).", shell_complete=complete_group)
+@click.option("-f", "--flag", multiple=True, help="Flag docs as 'flag: description' (repeatable, replaces all flags).")
+@click.option("-p", "--pin/--no-pin", default=None, help="Pin or unpin the command.")
+def edit(cmd_id: int, description: str | None, group: str | None, flag: tuple[str, ...], pin: bool | None):
+    """Edit a command's metadata by ID."""
+    db = get_db()
+    cmd = db.get_command(cmd_id)
+    if not cmd:
+        click.echo(f"Command {cmd_id} not found.", err=True)
+        sys.exit(1)
+
+    changes = []
+    if description is not None:
+        db.update_description(cmd_id, description)
+        changes.append(f"description: {description}")
+    if group is not None:
+        group_name = group if group else None
+        db.update_group(cmd_id, group_name)
+        changes.append(f"group: {group_name or '(none)'}")
+    if flag:
+        flags: dict[str, str] = {}
+        for f in flag:
+            parts = f.split(":", 1)
+            flag_name = parts[0].strip()
+            flag_desc = parts[1].strip() if len(parts) > 1 else ""
+            flags[flag_name] = flag_desc
+        db.update_flags(cmd_id, flags)
+        changes.append(f"flags: {len(flags)} documented")
+    if pin is not None:
+        db.pin_command(cmd_id, pin)
+        changes.append("pinned" if pin else "unpinned")
+
+    if not changes:
+        click.echo(f"[{cmd_id}] {cmd.command} — nothing to change (use -d, -g, -f, or --pin)")
+        return
+
+    click.echo(f"Updated [{cmd_id}]: {cmd.command}")
+    for c in changes:
+        click.echo(f"  → {c}")
+
+
+# --- doctor ---
+
+
+@cli.command()
+def doctor():
+    """Check Copa setup and diagnose common issues."""
+    ok_mark = click.style("OK", fg="green")
+    warn_mark = click.style("!!", fg="yellow")
+    fail_mark = click.style("FAIL", fg="red")
+
+    click.echo("Copa Doctor\n")
+
+    # 1. Database
+    db_path = Path.home() / ".copa" / "copa.db"
+    if db_path.is_file():
+        size = db_path.stat().st_size
+        click.echo(f"  [{ok_mark}] Database: {db_path} ({size:,} bytes)")
+        db = get_db()
+        s = db.get_stats()
+        click.echo(f"       {s['total_commands']} commands, {s['total_groups']} groups, {s['shared_sets']} shared sets")
+    else:
+        click.echo(f"  [{fail_mark}] Database: not found at {db_path}")
+        click.echo("       Run: copa _init")
+
+    # 2. fzf
+    if shutil.which("fzf"):
+        click.echo(f"  [{ok_mark}] fzf: installed")
+    else:
+        click.echo(f"  [{fail_mark}] fzf: not found")
+        click.echo("       Install: brew install fzf")
+
+    # 3. Shell integration
+    zshrc = Path.home() / ".zshrc"
+    if zshrc.is_file() and "copa init zsh" in zshrc.read_text():
+        click.echo(f"  [{ok_mark}] Shell integration: found in ~/.zshrc")
+    else:
+        click.echo(f"  [{warn_mark}] Shell integration: not detected in ~/.zshrc")
+        click.echo('       Add: eval "$(copa init zsh)"')
+
+    # 4. LLM backend
+    if db_path.is_file():
+        db = get_db()
+        backend = db.get_meta("llm_backend")
+        if backend:
+            click.echo(f"  [{ok_mark}] LLM backend: {backend}")
+            if backend == "ollama":
+                model = db.get_meta("ollama_model") or "llama3.2:3b"
+                click.echo(f"       Model: {model}")
+        else:
+            click.echo(f"  [{warn_mark}] LLM backend: not configured")
+            click.echo("       Run: copa configure")
+
+    # 5. Completion mode
+    config_path = Path.home() / ".copa" / "config.toml"
+    if config_path.is_file():
+        from .config import load_config
+
+        cfg = load_config(config_path)
+        mode = cfg.get("_completion_mode", "fallback")
+        click.echo(f"  [{ok_mark}] Completion mode: {mode}")
+    else:
+        click.echo(f"  [{ok_mark}] Completion mode: fallback (default)")
+
+    click.echo()
 
 
 # --- Register extracted command modules ---
