@@ -1,6 +1,11 @@
 # Copa — shell integration for zsh
 # Add to your .zshrc:  eval "$(copa init zsh)"
 #
+# First time? Run these to get started:
+#   copa _init          # create the database
+#   copa sync           # import your shell history
+#   copa doctor         # check everything is set up
+#
 # What this does:
 #   1. Records every command you run (precmd hook, background, zero latency)
 #   2. Replaces Ctrl+R with an fzf command palette that searches across
@@ -11,23 +16,27 @@
 # --- Load keybinding config (runs once at shell startup) ---
 eval "$(copa _fzf-config 2>/dev/null)" || {
   # Fallback defaults if copa _fzf-config fails
-  _COPA_EXPECT='ctrl-v,ctrl-o,ctrl-x,ctrl-t,ctrl-a,ctrl-/'
+  _COPA_EXPECT='ctrl-v,ctrl-o,ctrl-/'
   _COPA_DESCRIBE_KEY='ctrl-d'
   _COPA_GROUP_KEY='ctrl-g'
   _COPA_FLAGS_KEY='ctrl-f'
   _COPA_FILTER_GROUP_KEY='ctrl-s'
   _COPA_CYCLE_GROUP_KEY='ctrl-n'
   _COPA_TOGGLE_HEADER_KEY='ctrl-h'
+  _COPA_SELECT_KEY='ctrl-b'
+  _COPA_HEIGHT='80%'
+  _COPA_PREVIEW_SIZE='40%'
   _COPA_COMPLETION_BRANDING='true'
   _COPA_COMPLETION_MODE='fallback'
   _COPA_HEADER=$'Copa | ^R:cycle | ^V:& | ^O:2>&1 | ^X:| | ^T:> | ^A:&& | ^/:quiet | ^H:keys\n^G:grp | ^D:desc | ^F:flag | ^S:scope | ^N:↻grp'
-  typeset -gA _COPA_SUFFIXES
-  _COPA_SUFFIXES[ctrl-v]=' &'
-  _COPA_SUFFIXES[ctrl-o]=' 2>&1'
-  _COPA_SUFFIXES[ctrl-x]=' | '
-  _COPA_SUFFIXES[ctrl-t]=' > '
-  _COPA_SUFFIXES[ctrl-a]=' && '
-  _COPA_SUFFIXES[ctrl-/]=' 2>/dev/null'
+  typeset -gA _COPA_CLOSE_SUFFIXES
+  _COPA_CLOSE_SUFFIXES[ctrl-v]=' &'
+  _COPA_CLOSE_SUFFIXES[ctrl-o]=' 2>&1'
+  _COPA_CLOSE_SUFFIXES[ctrl-/]=' 2>/dev/null'
+  typeset -gA _COPA_CONTINUE_SUFFIXES
+  _COPA_CONTINUE_SUFFIXES[ctrl-x]=' | '
+  _COPA_CONTINUE_SUFFIXES[ctrl-t]=' > '
+  _COPA_CONTINUE_SUFFIXES[ctrl-a]=' && '
 }
 
 # --- precmd hook: record last command ---
@@ -60,24 +69,42 @@ _copa_fzf_widget() {
   local output
   local copa_bin="${commands[copa]:-copa}"
   local _copa_modal_file=$(mktemp -t copa_modal.XXXXXX)
+  local _copa_compose_file=$(mktemp -t copa_compose.XXXXXX)
+  local accumulated=""
 
-  output=$("$copa_bin" fzf-list --mode "$mode" | \
-    fzf --ansi \
-        --delimiter '┃' \
-        --with-nth '2..3' \
-        --preview "$copa_bin _preview {1}" \
-        --preview-window 'right:40%:wrap' \
-        --header "$_COPA_HEADER" \
-        --prompt 'copa> ' \
-        --height '80%' \
-        --layout reverse \
-        --expect "$_COPA_EXPECT" \
-        --bind "${_COPA_DESCRIBE_KEY}:execute($copa_bin describe {1})+refresh-preview" \
-        --bind "${_COPA_FLAGS_KEY}:execute($copa_bin _set-flags {1})+reload($copa_bin fzf-list)+refresh-preview" \
-        --bind "${_COPA_FILTER_GROUP_KEY}:reload($copa_bin _list-groups)+change-prompt(scope> )+clear-query+hide-preview" \
+  while true; do
+    # Clear compose file for this iteration
+    > "$_copa_compose_file"
+
+    # Build prompt showing accumulated chain
+    local prompt_text="copa> "
+    if [[ -n "$accumulated" ]]; then
+      local display="$accumulated"
+      # Truncate long chains: show last 30 chars
+      if (( ${#display} > 30 )); then
+        display="...${display: -30}"
+      fi
+      prompt_text="copa [${display}]> "
+    fi
+
+    # Build fzf args dynamically
+    local -a fzf_args=(
+        --ansi
+        --delimiter '┃'
+        --with-nth '2..3'
+        --preview "$copa_bin _preview {1}"
+        --preview-window "right:${_COPA_PREVIEW_SIZE}:wrap"
+        --header "$_COPA_HEADER"
+        --prompt "$prompt_text"
+        --height "${_COPA_HEIGHT}"
+        --layout reverse
+        --expect "$_COPA_EXPECT"
+        --bind "${_COPA_DESCRIBE_KEY}:execute($copa_bin describe {1})+refresh-preview"
+        --bind "${_COPA_FLAGS_KEY}:execute($copa_bin _set-flags {1})+reload($copa_bin fzf-list)+refresh-preview"
+        --bind "${_COPA_FILTER_GROUP_KEY}:reload($copa_bin _list-groups)+change-prompt(scope> )+clear-query+hide-preview"
         --bind "${_COPA_GROUP_KEY}:transform:
           echo {1} > ${_copa_modal_file};
-          echo \"reload(${copa_bin} _list-groups-for-assign)+change-prompt(group> )+clear-query+hide-preview\"" \
+          echo \"reload(${copa_bin} _list-groups-for-assign)+change-prompt(group> )+clear-query+hide-preview\""
         --bind "${_COPA_CYCLE_GROUP_KEY}:transform:
           cur_group='(all)';
           if [[ \$FZF_PROMPT =~ 'copa \\[(.+)\\]> ' ]]; then
@@ -88,7 +115,7 @@ _copa_fzf_widget() {
             echo \"reload(${copa_bin} fzf-list --mode all)+change-prompt(copa> )\";
           else
             echo \"reload(${copa_bin} fzf-list --mode group --group \$next)+change-prompt(copa [\$next]> )\";
-          fi" \
+          fi"
         --bind 'ctrl-r:transform:
           if [[ $FZF_PROMPT == "copa> " ]]; then
             echo "reload('"$copa_bin"' fzf-list --mode frequent)+change-prompt(frequent> )"
@@ -96,8 +123,9 @@ _copa_fzf_widget() {
             echo "reload('"$copa_bin"' fzf-list --mode recent)+change-prompt(recent> )"
           else
             echo "reload('"$copa_bin"' fzf-list --mode all)+change-prompt(copa> )"
-          fi' \
-        --bind "${_COPA_TOGGLE_HEADER_KEY}:toggle-header" \
+          fi'
+        --bind "${_COPA_TOGGLE_HEADER_KEY}:toggle-header"
+        --bind "${_COPA_SELECT_KEY}:execute-silent(printf 'SELECT' > ${_copa_compose_file})+accept"
         --bind 'enter:transform:
           if [[ $FZF_PROMPT == "scope> " ]]; then
             selected={2};
@@ -113,32 +141,130 @@ _copa_fzf_widget() {
             echo "reload('"$copa_bin"' fzf-list)+change-prompt(copa> )+clear-query+show-preview"
           else
             echo "accept"
-          fi' \
+          fi'
         --bind 'esc:transform:
           if [[ $FZF_PROMPT == "scope> " || $FZF_PROMPT == "group> " ]]; then
             echo "reload('"$copa_bin"' fzf-list)+change-prompt(copa> )+clear-query+show-preview"
           else
             echo "abort"
-          fi' \
-  )
+          fi'
+    )
+
+    # Add continue key bindings dynamically — these write suffix to temp file + accept
+    local _ckey _csuffix
+    for _ckey _csuffix in "${(@kv)_COPA_CONTINUE_SUFFIXES}"; do
+      fzf_args+=(--bind "${_ckey}:execute-silent(printf '%s' '${_csuffix}' > ${_copa_compose_file})+accept")
+    done
+
+    output=$("$copa_bin" fzf-list --mode "$mode" | fzf "${fzf_args[@]}")
+
+    # Check if a continue key was pressed (compose file has content)
+    local compose_suffix=""
+    [[ -s "$_copa_compose_file" ]] && compose_suffix=$(<"$_copa_compose_file")
+
+    if [[ "$compose_suffix" == "SELECT" ]]; then
+      # Enter select mode — run a separate fzf with --multi
+      _copa_select_mode "$copa_bin"
+      break
+    fi
+
+    if [[ -n "$output" ]]; then
+      local key selected cmd
+      key=$(echo "$output" | head -1)
+      selected=$(echo "$output" | tail -n +2)
+
+      if [[ -n "$selected" && "$selected" == *┃* ]]; then
+        cmd=$(echo "$selected" | cut -d'┃' -f2 | sed 's/^ *//;s/ *$//')
+
+        if [[ -n "$compose_suffix" ]]; then
+          # Continue key: accumulate and re-open fzf
+          accumulated="${accumulated}${cmd}${compose_suffix}"
+          continue
+        fi
+
+        # Close key or Enter — finalize
+        local suffix="${_COPA_CLOSE_SUFFIXES[$key]}"
+        LBUFFER="${accumulated}${cmd}${suffix}"
+      fi
+    fi
+    # ESC, empty output, or no ┃ — break without setting LBUFFER
+    break
+  done
 
   [[ -f "$_copa_modal_file" ]] && rm -f "$_copa_modal_file"
-
-  if [[ -n "$output" ]]; then
-    # --expect output: line 1 = key pressed (empty for Enter), line 2+ = selected item
-    local key selected cmd suffix
-    key=$(echo "$output" | head -1)
-    selected=$(echo "$output" | tail -n +2)
-
-    # Skip lines without ┃ (modal group names don't have the delimiter)
-    if [[ -n "$selected" && "$selected" == *┃* ]]; then
-      cmd=$(echo "$selected" | cut -d'┃' -f2 | sed 's/^ *//;s/ *$//')
-      suffix="${_COPA_SUFFIXES[$key]}"
-      LBUFFER="${cmd}${suffix}"
-    fi
-  fi
+  [[ -f "$_copa_compose_file" ]] && rm -f "$_copa_compose_file"
 
   zle reset-prompt
+}
+
+# --- Select mode: multi-select items then batch-operate ---
+_copa_select_mode() {
+  local copa_bin="${1:-${commands[copa]:-copa}}"
+  local select_output
+
+  select_output=$("$copa_bin" fzf-list --mode all | fzf \
+    --ansi \
+    --multi \
+    --delimiter '┃' \
+    --with-nth '2..3' \
+    --preview "$copa_bin _preview {1}" \
+    --preview-window "right:${_COPA_PREVIEW_SIZE}:wrap" \
+    --header "SELECT MODE | Tab:toggle | Enter:batch action | Esc:cancel" \
+    --prompt "select> " \
+    --height "${_COPA_HEIGHT}" \
+    --layout reverse \
+    --bind 'ctrl-r:transform:
+      if [[ $FZF_PROMPT == "select> " ]]; then
+        echo "reload('"$copa_bin"' fzf-list --mode frequent)+change-prompt(select [frequent]> )"
+      elif [[ $FZF_PROMPT == "select [frequent]> " ]]; then
+        echo "reload('"$copa_bin"' fzf-list --mode recent)+change-prompt(select [recent]> )"
+      else
+        echo "reload('"$copa_bin"' fzf-list --mode all)+change-prompt(select> )"
+      fi'
+  )
+
+  [[ -z "$select_output" ]] && return
+
+  # Parse selected IDs from output lines
+  local -a selected_ids
+  local line
+  while IFS= read -r line; do
+    if [[ "$line" == *┃* ]]; then
+      local id_field="${line%%┃*}"
+      id_field="${id_field// /}"  # trim spaces
+      [[ -n "$id_field" ]] && selected_ids+=("$id_field")
+    fi
+  done <<< "$select_output"
+
+  (( ${#selected_ids} == 0 )) && return
+
+  # Show batch action menu via tty
+  local count=${#selected_ids}
+  local action
+  local _copa_tty
+  exec {_copa_tty}</dev/tty
+
+  echo "Selected $count command(s)." >&$_copa_tty
+  echo "  g = assign group" >&$_copa_tty
+  echo "  d = delete" >&$_copa_tty
+  echo "  a = auto-describe (LLM)" >&$_copa_tty
+  echo "  q = cancel" >&$_copa_tty
+  echo -n "Action: " >&$_copa_tty
+  read -u $_copa_tty action
+
+  exec {_copa_tty}<&-
+
+  case "$action" in
+    g)
+      "$copa_bin" _batch-group "${selected_ids[@]}"
+      ;;
+    d)
+      "$copa_bin" _batch-delete "${selected_ids[@]}"
+      ;;
+    a)
+      "$copa_bin" _batch-describe "${selected_ids[@]}"
+      ;;
+  esac
 }
 
 zle -N _copa_fzf_widget

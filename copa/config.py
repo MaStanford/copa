@@ -19,6 +19,7 @@ DEFAULT_KEYS: dict[str, str] = {
     "filter_group": "ctrl-s",
     "cycle_group": "ctrl-n",
     "toggle_header": "ctrl-h",
+    "select": "ctrl-b",
 }
 
 # Action name -> shell suffix appended to the command
@@ -30,6 +31,10 @@ SUFFIXES: dict[str, str] = {
     "chain": " && ",
     "suppress": " 2>/dev/null",
 }
+
+# Composition actions that re-open fzf (continue) vs close it
+# Users can override via [composition] continue = [...] in config.toml
+DEFAULT_CONTINUE: set[str] = {"pipe", "chain", "redirect"}
 
 # Action name -> short label for the header
 LABELS: dict[str, str] = {
@@ -45,6 +50,7 @@ LABELS: dict[str, str] = {
     "filter_group": "scope",
     "cycle_group": "↻grp",
     "toggle_header": "keys",
+    "select": "sel",
 }
 
 # Keys that cannot be overridden by user config
@@ -79,6 +85,7 @@ def load_config(path: Path | None = None) -> dict:
     config: dict = dict(DEFAULT_KEYS)
     config["_completion_branding"] = True  # default: show branding
     config["_completion_mode"] = "fallback"  # default: only when native completers found nothing
+    config["_continue_actions"] = set(DEFAULT_CONTINUE)  # default continue-vs-close split
 
     if path is None:
         path = Path.home() / ".copa" / "config.toml"
@@ -102,6 +109,27 @@ def load_config(path: Path | None = None) -> dict:
         mode = completion_section.get("mode")
         if isinstance(mode, str) and mode in ("fallback", "always", "hybrid", "never"):
             config["_completion_mode"] = mode
+
+    # [layout] section — fzf height and preview pane size
+    layout_section = data.get("layout")
+    if isinstance(layout_section, dict):
+        height = layout_section.get("height")
+        if isinstance(height, (int, str)):
+            config["_height"] = str(height)
+        preview = layout_section.get("preview_size")
+        if isinstance(preview, (int, str)):
+            config["_preview_size"] = str(preview)
+
+    # [composition] section — which actions re-open fzf vs close it
+    composition_section = data.get("composition")
+    if isinstance(composition_section, dict):
+        continue_list = composition_section.get("continue")
+        if isinstance(continue_list, list):
+            # Only keep valid composition action names (those that have suffixes)
+            config["_continue_actions"] = {
+                name for name in continue_list
+                if isinstance(name, str) and name in SUFFIXES
+            }
 
     keys_section = data.get("keys")
     if not isinstance(keys_section, dict):
@@ -148,10 +176,14 @@ def emit_zsh_config(config: dict[str, str]) -> str:
     filter_group_key = config.get("filter_group", DEFAULT_KEYS["filter_group"])
     cycle_group_key = config.get("cycle_group", DEFAULT_KEYS["cycle_group"])
     toggle_header_key = config.get("toggle_header", DEFAULT_KEYS["toggle_header"])
+
+    continue_actions = config.get("_continue_actions", DEFAULT_CONTINUE)
+
+    # Only close keys go in --expect (causes fzf to exit)
     expect_keys = [
         config[action]
         for action in ("background", "merge_output", "pipe", "redirect", "chain", "suppress")
-        if action in config
+        if action in config and action not in continue_actions
     ]
 
     lines.append(f"_COPA_EXPECT='{','.join(expect_keys)}'")
@@ -161,6 +193,8 @@ def emit_zsh_config(config: dict[str, str]) -> str:
     lines.append(f"_COPA_FILTER_GROUP_KEY='{filter_group_key}'")
     lines.append(f"_COPA_CYCLE_GROUP_KEY='{cycle_group_key}'")
     lines.append(f"_COPA_TOGGLE_HEADER_KEY='{toggle_header_key}'")
+    select_key = config.get("select", DEFAULT_KEYS["select"])
+    lines.append(f"_COPA_SELECT_KEY='{select_key}'")
 
     # Build 2-line header to avoid wrapping on narrow terminals
     # Row 1: composition keys + toggle
@@ -173,7 +207,7 @@ def emit_zsh_config(config: dict[str, str]) -> str:
 
     # Row 2: action keys
     row2_parts = []
-    for action in ("group", "describe", "flags", "filter_group", "cycle_group"):
+    for action in ("group", "describe", "flags", "filter_group", "cycle_group", "select"):
         key = config.get(action, DEFAULT_KEYS[action])
         label = LABELS[action]
         row2_parts.append(f"{_format_key_label(key)}:{label}")
@@ -182,17 +216,27 @@ def emit_zsh_config(config: dict[str, str]) -> str:
     # Use $'...\n...' quoting so zsh interprets the newline
     lines.append(f"_COPA_HEADER=$'{row1}\\n{row2}'")
 
+    # Layout config
+    height = config.get("_height", "80%")
+    lines.append(f"_COPA_HEIGHT='{height}'")
+    preview_size = config.get("_preview_size", "40%")
+    lines.append(f"_COPA_PREVIEW_SIZE='{preview_size}'")
+
     # Completion config
     branding = config.get("_completion_branding", True)
     lines.append(f"_COPA_COMPLETION_BRANDING='{'true' if branding else 'false'}'")
     completion_mode = config.get("_completion_mode", "fallback")
     lines.append(f"_COPA_COMPLETION_MODE='{completion_mode}'")
 
-    # Suffix associative array
-    lines.append("typeset -gA _COPA_SUFFIXES")
+    # Split suffixes into close (fzf exits) and continue (fzf re-opens)
+    lines.append("typeset -gA _COPA_CLOSE_SUFFIXES")
+    lines.append("typeset -gA _COPA_CONTINUE_SUFFIXES")
     for action in ("background", "merge_output", "pipe", "redirect", "chain", "suppress"):
         key = config.get(action, DEFAULT_KEYS[action])
         suffix = SUFFIXES[action]
-        lines.append(f"_COPA_SUFFIXES[{key}]='{suffix}'")
+        if action in continue_actions:
+            lines.append(f"_COPA_CONTINUE_SUFFIXES[{key}]='{suffix}'")
+        else:
+            lines.append(f"_COPA_CLOSE_SUFFIXES[{key}]='{suffix}'")
 
     return "\n".join(lines)

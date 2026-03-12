@@ -295,6 +295,140 @@ def fzf_config_cmd():
     click.echo(emit_zsh_config(config))
 
 
+@click.command("_batch-group", hidden=True)
+@click.argument("cmd_ids", nargs=-1, type=int)
+def batch_group(cmd_ids):
+    """Batch assign group to multiple commands."""
+    if not cmd_ids:
+        return
+    db = get_db()
+    tty, old_attrs = _open_tty()
+
+    def tty_write(msg: str):
+        if tty:
+            tty.write(msg + "\n")
+            tty.flush()
+        else:
+            click.echo(msg)
+
+    def tty_read(prompt: str) -> str:
+        if tty:
+            tty.write(prompt)
+            tty.flush()
+            return tty.readline().rstrip("\n")
+        return input(prompt)
+
+    tty_write(f"  Batch group: {len(cmd_ids)} command(s)")
+    groups = db.get_groups()
+    if groups:
+        tty_write(f"  Existing groups: {', '.join(groups)}")
+
+    try:
+        name = tty_read("  Group name (empty=clear, q=cancel): ").strip()
+    except (EOFError, KeyboardInterrupt):
+        _close_tty(tty, old_attrs)
+        return
+
+    if name.lower() == "q":
+        _close_tty(tty, old_attrs)
+        return
+
+    group_name = name if name else None
+    updated = 0
+    for cid in cmd_ids:
+        if db.update_group(cid, group_name):
+            updated += 1
+
+    label = group_name or "(none)"
+    tty_write(f"  → {updated}/{len(cmd_ids)} set to: {label}")
+    _close_tty(tty, old_attrs)
+
+
+@click.command("_batch-delete", hidden=True)
+@click.argument("cmd_ids", nargs=-1, type=int)
+def batch_delete(cmd_ids):
+    """Batch delete multiple commands."""
+    if not cmd_ids:
+        return
+    db = get_db()
+    tty, old_attrs = _open_tty()
+
+    def tty_write(msg: str):
+        if tty:
+            tty.write(msg + "\n")
+            tty.flush()
+        else:
+            click.echo(msg)
+
+    def tty_read(prompt: str) -> str:
+        if tty:
+            tty.write(prompt)
+            tty.flush()
+            return tty.readline().rstrip("\n")
+        return input(prompt)
+
+    tty_write(f"  Batch delete: {len(cmd_ids)} command(s)")
+
+    try:
+        confirm = tty_read("  Confirm delete? (y/n): ").strip().lower()
+    except (EOFError, KeyboardInterrupt):
+        _close_tty(tty, old_attrs)
+        return
+
+    if confirm != "y":
+        tty_write("  cancelled")
+        _close_tty(tty, old_attrs)
+        return
+
+    removed = 0
+    for cid in cmd_ids:
+        if db.remove_command(cid):
+            removed += 1
+
+    tty_write(f"  → deleted {removed}/{len(cmd_ids)}")
+    _close_tty(tty, old_attrs)
+
+
+@click.command("_batch-describe", hidden=True)
+@click.argument("cmd_ids", nargs=-1, type=int)
+def batch_describe(cmd_ids):
+    """Batch auto-describe commands with LLM."""
+    if not cmd_ids:
+        return
+    from .llm import generate_description
+
+    db = get_db()
+    tty, old_attrs = _open_tty()
+
+    def tty_write(msg: str):
+        if tty:
+            tty.write(msg + "\n")
+            tty.flush()
+        else:
+            click.echo(msg)
+
+    backend = db.get_meta("llm_backend") or "claude"
+    model = db.get_meta("ollama_model") or "llama3.2:3b"
+    tty_write(f"  Batch describe: {len(cmd_ids)} command(s) ({backend})")
+
+    described = 0
+    for cid in cmd_ids:
+        cmd = db.get_command(cid)
+        if not cmd:
+            continue
+        tty_write(f"  [{cmd.id}] {cmd.command}")
+        desc = generate_description(cmd.command, backend=backend, model=model)
+        if desc:
+            db.update_description(cmd.id, desc)
+            described += 1
+            tty_write(f"    → {desc}")
+        else:
+            tty_write("    → (no suggestion)")
+
+    tty_write(f"  Done: {described}/{len(cmd_ids)} described")
+    _close_tty(tty, old_attrs)
+
+
 def register(cli):
     """Register internal commands with the CLI group."""
     cli.add_command(record)
@@ -311,3 +445,6 @@ def register(cli):
     cli.add_command(mcp_cmd)
     cli.add_command(completion)
     cli.add_command(fzf_config_cmd)
+    cli.add_command(batch_group)
+    cli.add_command(batch_delete)
+    cli.add_command(batch_describe)

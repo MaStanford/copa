@@ -110,9 +110,11 @@ def configure():
 @click.command()
 @click.argument("cmd_id", type=int)
 def describe(cmd_id: int):
-    """Generate or update a description for a command using LLM."""
-    from .llm import generate_description
+    """Add or update a description for a command.
 
+    Type text to set a manual description, 'a' for LLM auto-generation,
+    or 'q' to quit without changes.
+    """
     db = get_db()
     cmd = db.get_command(cmd_id)
     if not cmd:
@@ -139,16 +141,31 @@ def describe(cmd_id: int):
     if cmd.description:
         tty_write(f"  Current: {cmd.description}")
 
-    backend = db.get_meta("llm_backend") or "claude"
-    model = db.get_meta("ollama_model") or "llama3.2:3b"
-
-    tty_write(f"  Generating ({backend})...")
-    suggestion = generate_description(cmd.command, backend=backend, model=model)
-
     try:
+        answer = tty_read("  Description (a=auto, q=quit): ").strip()
+    except (EOFError, KeyboardInterrupt):
+        _close_tty(tty, old_attrs)
+        return
+
+    if not answer or answer.lower() == "q":
+        _close_tty(tty, old_attrs)
+        return
+
+    if answer.lower() in ("a", "auto"):
+        # LLM auto-generation path
+        from .llm import generate_description
+
+        backend = db.get_meta("llm_backend") or "claude"
+        model = db.get_meta("ollama_model") or "llama3.2:3b"
+        tty_write(f"  Generating ({backend})...")
+        suggestion = generate_description(cmd.command, backend=backend, model=model)
         if suggestion:
             tty_write(f"  Suggestion: {suggestion}")
-            desc = tty_read(f"  Description [{suggestion}]: ").strip()
+            try:
+                desc = tty_read(f"  Accept [{suggestion}]: ").strip()
+            except (EOFError, KeyboardInterrupt):
+                _close_tty(tty, old_attrs)
+                return
             if desc.lower() == "q":
                 _close_tty(tty, old_attrs)
                 return
@@ -156,13 +173,17 @@ def describe(cmd_id: int):
                 desc = suggestion
         else:
             tty_write("  (no suggestion generated)")
-            desc = tty_read("  Description: ").strip()
+            try:
+                desc = tty_read("  Description: ").strip()
+            except (EOFError, KeyboardInterrupt):
+                _close_tty(tty, old_attrs)
+                return
             if not desc:
                 _close_tty(tty, old_attrs)
                 return
-    except (EOFError, KeyboardInterrupt):
-        _close_tty(tty, old_attrs)
-        return
+    else:
+        # Manual text — use directly as description
+        desc = answer
 
     db.update_description(cmd.id, desc)
     tty_write("  saved")
