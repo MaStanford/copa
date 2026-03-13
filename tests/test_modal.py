@@ -838,12 +838,16 @@ class TestSuggestBackspaceLatch:
 class TestTabAcceptConfig:
     """Test [suggest] tab_accept config option."""
 
-    def test_default_tab_accept_is_2(self):
-        config = load_config()
+    def test_default_tab_accept_is_2(self, tmp_path):
+        config_file = tmp_path / "config.toml"
+        config_file.write_text("")
+        config = load_config(config_file)
         assert config["_suggest_tab_accept"] == 2
 
-    def test_emit_zsh_config_has_tab_accept(self):
-        config = load_config()
+    def test_emit_zsh_config_has_tab_accept(self, tmp_path):
+        config_file = tmp_path / "config.toml"
+        config_file.write_text("")
+        config = load_config(config_file)
         output = emit_zsh_config(config)
         assert "_COPA_SUGGEST_TAB_ACCEPT='2'" in output
 

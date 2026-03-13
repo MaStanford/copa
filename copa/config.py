@@ -89,6 +89,7 @@ def load_config(path: Path | None = None) -> dict:
     config["_suggest_enabled"] = True  # default: inline suggestions on
     config["_suggest_min_length"] = 2  # minimum chars before querying
     config["_suggest_tab_accept"] = 2  # 1=direct accept, 2=open menu first
+    config["_suggest_color"] = "242"  # ghost text color (256-color palette)
 
     if path is None:
         path = Path.home() / ".copa" / "config.toml"
@@ -143,6 +144,9 @@ def load_config(path: Path | None = None) -> dict:
         tab_accept = suggest_section.get("tab_accept")
         if isinstance(tab_accept, int) and tab_accept in (1, 2):
             config["_suggest_tab_accept"] = tab_accept
+        color = suggest_section.get("color")
+        if isinstance(color, (int, str)):
+            config["_suggest_color"] = str(color)
 
     keys_section = data.get("keys")
     if not isinstance(keys_section, dict):
@@ -246,6 +250,7 @@ def emit_zsh_config(config: dict[str, str]) -> str:
     lines.append(f"_COPA_SUGGEST_ENABLED='{'true' if suggest_enabled else 'false'}'")
     lines.append(f"_COPA_SUGGEST_MIN_LENGTH='{config.get('_suggest_min_length', 2)}'")
     lines.append(f"_COPA_SUGGEST_TAB_ACCEPT='{config.get('_suggest_tab_accept', 2)}'")
+    lines.append(f"_COPA_SUGGEST_COLOR='{config.get('_suggest_color', '242')}'")
 
     # Split suffixes into close (fzf exits) and continue (fzf re-opens)
     lines.append("typeset -gA _COPA_CLOSE_SUFFIXES")

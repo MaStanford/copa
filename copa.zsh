@@ -41,6 +41,7 @@ eval "$(copa _fzf-config 2>/dev/null)" || {
   _COPA_SUGGEST_ENABLED='true'
   _COPA_SUGGEST_MIN_LENGTH='2'
   _COPA_SUGGEST_TAB_ACCEPT='2'
+  _COPA_SUGGEST_COLOR='242'
   _COPA_HEADER=$'Copa | ^R:cycle | ^V:& | ^O:2>&1 | ^X:| | ^T:> | ^A:&& | ^/:quiet | ^H:keys\n^G:grp | ^D:desc | ^F:flag | ^S:scope | ^N:↻grp'
   typeset -gA _COPA_CLOSE_SUFFIXES
   _COPA_CLOSE_SUFFIXES[ctrl-v]=' &'
@@ -390,8 +391,10 @@ _copa_suggest_fetch() {
   result=$(copa _suggest "$BUFFER" 2>/dev/null)
   if [[ -n "$result" && "$result" != "$BUFFER" ]]; then
     _COPA_SUGGESTION="$result"
-    POSTDISPLAY="${result:${#BUFFER}}"
-    region_highlight=("P 0 ${#POSTDISPLAY} fg=242")
+    local blen=${#BUFFER}
+    local ghost="${result:$blen}"
+    POSTDISPLAY="$ghost"
+    region_highlight=("$blen $(( blen + ${#ghost} )) fg=${_COPA_SUGGEST_COLOR:-242}")
   fi
 }
 
@@ -458,10 +461,11 @@ _copa_suggest_forward_char() {
     BUFFER="${BUFFER}${word}"
     CURSOR=${#BUFFER}
     # Update ghost text from existing suggestion (no re-query, no flicker)
-    local remaining="${_COPA_SUGGESTION:${#BUFFER}}"
+    local blen=${#BUFFER}
+    local remaining="${_COPA_SUGGESTION:$blen}"
     if [[ -n "$remaining" ]]; then
       POSTDISPLAY="$remaining"
-      region_highlight=("P 0 ${#POSTDISPLAY} fg=242")
+      region_highlight=("$blen $(( blen + ${#remaining} )) fg=${_COPA_SUGGEST_COLOR:-242}")
     else
       # Fully accepted; clear and re-fetch for extended suggestions
       _copa_suggest_clear
