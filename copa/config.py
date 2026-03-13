@@ -129,10 +129,7 @@ def load_config(path: Path | None = None) -> dict:
         continue_list = composition_section.get("continue")
         if isinstance(continue_list, list):
             # Only keep valid composition action names (those that have suffixes)
-            config["_continue_actions"] = {
-                name for name in continue_list
-                if isinstance(name, str) and name in SUFFIXES
-            }
+            config["_continue_actions"] = {name for name in continue_list if isinstance(name, str) and name in SUFFIXES}
 
     # [suggest] section — inline suggestion settings
     suggest_section = data.get("suggest")

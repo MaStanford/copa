@@ -242,7 +242,7 @@ class TestCompositionConfig:
 
     def test_load_config_empty_continue_list(self, tmp_path):
         config_file = tmp_path / "config.toml"
-        config_file.write_text('[composition]\ncontinue = []\n')
+        config_file.write_text("[composition]\ncontinue = []\n")
         config = load_config(config_file)
         assert config["_continue_actions"] == set()
 
@@ -292,7 +292,7 @@ class TestCompositionConfig:
 
     def test_empty_continue_all_keys_close(self, tmp_path):
         config_file = tmp_path / "config.toml"
-        config_file.write_text('[composition]\ncontinue = []\n')
+        config_file.write_text("[composition]\ncontinue = []\n")
         config = load_config(config_file)
         output = emit_zsh_config(config)
         # All 6 keys should be in _COPA_EXPECT
@@ -395,7 +395,7 @@ class TestLayoutConfig:
 
     def test_load_config_integer_height(self, tmp_path):
         config_file = tmp_path / "config.toml"
-        config_file.write_text('[layout]\nheight = 100\n')
+        config_file.write_text("[layout]\nheight = 100\n")
         config = load_config(config_file)
         assert config["_height"] == "100"
 
