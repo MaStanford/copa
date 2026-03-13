@@ -84,6 +84,42 @@ def init(shell: str):
 _SHELL_INTEGRATION_LINE = 'eval "$(copa init zsh)"'
 
 
+def _write_config_tab_accept(tab_accept: int) -> None:
+    """Write or update tab_accept in ~/.copa/config.toml."""
+    config_path = Path.home() / ".copa" / "config.toml"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if config_path.is_file():
+        content = config_path.read_text()
+    else:
+        content = ""
+
+    import re
+
+    if re.search(r"^\[suggest\]", content, re.MULTILINE):
+        # [suggest] section exists — update or add tab_accept
+        if re.search(r"^tab_accept\s*=", content, re.MULTILINE):
+            content = re.sub(
+                r"^tab_accept\s*=\s*\d+",
+                f"tab_accept = {tab_accept}",
+                content,
+                flags=re.MULTILINE,
+            )
+        else:
+            content = re.sub(
+                r"(\[suggest\]\n)",
+                f"\\1tab_accept = {tab_accept}\n",
+                content,
+            )
+    else:
+        # No [suggest] section — append it
+        if content and not content.endswith("\n"):
+            content += "\n"
+        content += f"\n[suggest]\ntab_accept = {tab_accept}\n"
+
+    config_path.write_text(content)
+
+
 @cli.command()
 def setup():
     """Interactive setup wizard — checks prerequisites and configures Copa."""
@@ -130,7 +166,31 @@ def setup():
             click.echo(f"  [{skip}] Skipped — add manually:")
             click.echo(f"       {_SHELL_INTEGRATION_LINE}")
 
-    # 4. Sync history
+    # 4. Tab completion style
+    click.echo()
+    click.echo("  Copa shows inline suggestions as you type (ghost text).")
+    click.echo("  How should " + click.style("Tab", bold=True) + " handle suggestions?")
+    click.echo()
+    click.echo("    " + click.style("1", bold=True) + "  " + click.style("Inline accept", fg="cyan"))
+    click.echo("       Tab accepts the suggestion directly into your command line.")
+    click.echo()
+    opt2 = click.style("Menu select", fg="cyan") + click.style(" (default)", dim=True)
+    click.echo("    " + click.style("2", bold=True) + "  " + opt2)
+    click.echo("       Tab opens a completion menu with the suggestion highlighted.")
+    click.echo("       Tab again accepts it. See alternatives before committing.")
+    click.echo()
+    tab_choice = click.prompt(
+        "  Choose tab style",
+        type=click.Choice(["1", "2"]),
+        default="2",
+        show_choices=False,
+    )
+    tab_accept = int(tab_choice)
+    _write_config_tab_accept(tab_accept)
+    label = "Inline accept" if tab_accept == 1 else "Menu select"
+    click.echo(f"  [{fixed}] Tab style: {label}")
+
+    # 5. Sync history
     click.echo()
     if click.confirm("  Import commands from your zsh history?", default=True):
         from .history import sync_history
@@ -141,7 +201,7 @@ def setup():
     else:
         click.echo(f"  [{skip}] Skipped — run " + click.style("copa sync", bold=True) + " later")
 
-    # 5. Done
+    # 6. Done
     click.echo()
     click.echo(click.style("  Setup complete!", fg="green", bold=True))
     click.echo()
@@ -149,6 +209,7 @@ def setup():
     click.echo("    " + click.style("source ~/.zshrc", bold=True) + "      Activate Copa in this terminal")
     click.echo("    " + click.style("copa doctor", bold=True) + "          Verify everything is working")
     click.echo("    Press " + click.style("Ctrl+R", bold=True) + "          Open the command palette")
+    click.echo("    Type a command + " + click.style("Tab", bold=True) + "    See inline suggestions")
     click.echo()
 
 
