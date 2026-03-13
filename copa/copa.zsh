@@ -381,7 +381,7 @@ _copa_suggest_fetch() {
   if [[ -n "$result" && "$result" != "$BUFFER" ]]; then
     _COPA_SUGGESTION="$result"
     POSTDISPLAY="${result:${#BUFFER}}"
-    region_highlight=("P0 ${#POSTDISPLAY} fg=8")
+    region_highlight=("P 0 ${#POSTDISPLAY} fg=242")
   fi
 }
 
@@ -452,7 +452,7 @@ _copa_suggest_forward_char() {
     local remaining="${_COPA_SUGGESTION:${#BUFFER}}"
     if [[ -n "$remaining" ]]; then
       POSTDISPLAY="$remaining"
-      region_highlight=("P0 ${#POSTDISPLAY} fg=8")
+      region_highlight=("P 0 ${#POSTDISPLAY} fg=242")
     else
       # Fully accepted; clear and re-fetch for extended suggestions
       _copa_suggest_clear
