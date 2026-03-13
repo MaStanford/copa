@@ -40,11 +40,30 @@ def _cmd_to_json(cmd: Command) -> dict:
 # --- Main group ---
 
 
-@click.group()
+@click.group(invoke_without_command=True)
 @click.version_option(package_name="copa-cli")
-def cli():
+@click.pass_context
+def cli(ctx):
     """Copa — Command Palette. Smart command tracking, ranking, and sharing."""
-    pass
+    if ctx.invoked_subcommand is None:
+        # Show help, then a setup hint if needed
+        click.echo(ctx.get_help())
+        _maybe_show_setup_hint()
+
+
+def _maybe_show_setup_hint():
+    """Show a setup hint if Copa is not fully configured."""
+    db_path = Path.home() / ".copa" / "copa.db"
+    zshrc = Path.home() / ".zshrc"
+    has_db = db_path.is_file()
+    has_shell = zshrc.is_file() and "copa init zsh" in zshrc.read_text()
+    has_fzf = shutil.which("fzf") is not None
+
+    if not has_db or not has_shell or not has_fzf:
+        click.echo()
+        hint = click.style("  Tip: ", fg="cyan", bold=True)
+        hint += "run " + click.style("copa setup", bold=True) + " to get started"
+        click.echo(hint)
 
 
 # --- init ---
@@ -58,6 +77,79 @@ def init(shell: str):
 
     zsh_file = files("copa").joinpath("copa.zsh")
     click.echo(zsh_file.read_text())
+
+
+# --- setup ---
+
+_SHELL_INTEGRATION_LINE = 'eval "$(copa init zsh)"'
+
+
+@cli.command()
+def setup():
+    """Interactive setup wizard — checks prerequisites and configures Copa."""
+    ok = click.style("OK", fg="green")
+    fixed = click.style("FIXED", fg="green")
+    skip = click.style("SKIP", fg="yellow")
+    fail = click.style("!!", fg="yellow")
+
+    click.echo(click.style("Copa Setup", bold=True))
+    click.echo()
+
+    # 1. Check fzf
+    if shutil.which("fzf"):
+        click.echo(f"  [{ok}] fzf is installed")
+    else:
+        click.echo(f"  [{fail}] fzf is not installed")
+        click.echo("       Copa's Ctrl+R palette requires fzf.")
+        click.echo("       Install: " + click.style("brew install fzf", bold=True) + " (macOS)")
+        click.echo("                " + click.style("sudo apt install fzf", bold=True) + " (Linux)")
+        click.echo()
+
+    # 2. Initialize database
+    db_path = Path.home() / ".copa" / "copa.db"
+    if db_path.is_file():
+        click.echo(f"  [{ok}] Database exists ({db_path})")
+    else:
+        click.echo(f"  [{fixed}] Database created ({db_path})")
+    # Always call get_db to ensure db + tables exist
+    from .cli_common import get_db
+
+    get_db()
+
+    # 3. Shell integration
+    zshrc = Path.home() / ".zshrc"
+    if zshrc.is_file() and _SHELL_INTEGRATION_LINE in zshrc.read_text():
+        click.echo(f"  [{ok}] Shell integration in ~/.zshrc")
+    else:
+        click.echo(f"  [{fail}] Shell integration not found in ~/.zshrc")
+        if click.confirm("       Add it now?", default=True):
+            with open(zshrc, "a") as f:
+                f.write(f"\n# Copa — Command Palette\n{_SHELL_INTEGRATION_LINE}\n")
+            click.echo(f"  [{fixed}] Added to ~/.zshrc")
+        else:
+            click.echo(f"  [{skip}] Skipped — add manually:")
+            click.echo(f"       {_SHELL_INTEGRATION_LINE}")
+
+    # 4. Sync history
+    click.echo()
+    if click.confirm("  Import commands from your zsh history?", default=True):
+        from .history import sync_history
+
+        db = get_db()
+        added = sync_history(db)
+        click.echo(f"  [{fixed}] Synced {added} commands from history")
+    else:
+        click.echo(f"  [{skip}] Skipped — run " + click.style("copa sync", bold=True) + " later")
+
+    # 5. Done
+    click.echo()
+    click.echo(click.style("  Setup complete!", fg="green", bold=True))
+    click.echo()
+    click.echo("  Next steps:")
+    click.echo("    " + click.style("source ~/.zshrc", bold=True) + "      Activate Copa in this terminal")
+    click.echo("    " + click.style("copa doctor", bold=True) + "          Verify everything is working")
+    click.echo("    Press " + click.style("Ctrl+R", bold=True) + "          Open the command palette")
+    click.echo()
 
 
 # --- uninstall ---

@@ -55,24 +55,47 @@ pip install -e .
 pip install copa-cli[ollama]
 ```
 
-### Shell integration (required)
+### Setup
 
-Add this line to your `~/.zshrc`:
+Run the interactive setup wizard:
 
 ```bash
-eval "$(copa init zsh)"
+copa setup
 ```
 
-Then restart your shell or run `source ~/.zshrc`. This does three things:
+This walks you through everything:
+1. Checks that **fzf** is installed (tells you how to install if missing)
+2. Creates the Copa database (`~/.copa/copa.db`)
+3. Adds shell integration to your `~/.zshrc` (prompts for confirmation)
+4. Optionally imports your zsh history
+
+Then activate Copa in your current terminal:
+
+```bash
+source ~/.zshrc
+```
+
+### What shell integration does
+
+The `eval "$(copa init zsh)"` line added to your `.zshrc` does three things:
 
 1. **Records every command you run** — a `precmd` hook silently calls `copa _record` in the background after each command, building up frequency and recency data with zero latency impact.
 2. **Replaces Ctrl+R** — the default zsh reverse-history-search is replaced with Copa's fzf-powered command palette (see below).
 3. **Supplements tab completion** — Copa registers as a completer so that any command gets completion candidates from your Copa database. The behavior is configurable (`fallback`, `hybrid`, `always`, or `never`) — see [Tab Completion](#tab-completion).
 
-Initialize the database:
+### Manual setup
+
+If you prefer to set up manually instead of using `copa setup`:
 
 ```bash
-copa _init
+# Add shell integration to ~/.zshrc
+echo 'eval "$(copa init zsh)"' >> ~/.zshrc
+
+# Activate in current terminal
+source ~/.zshrc
+
+# Import your history (optional)
+copa sync
 ```
 
 ## Ctrl+R — fzf Command Palette
@@ -229,7 +252,10 @@ Press **Tab** to unlatch and re-enable suggestions. The next new prompt (Enter) 
 enabled = true       # set to false to disable inline suggestions
 min_length = 2       # minimum characters before querying (default: 2)
 tab_accept = 2       # 1 = Tab accepts directly, 2 = Tab opens menu first (default)
+color = 242          # ghost text color (256-color palette, default: 242 mid-grey)
 ```
+
+The `color` value is a [256-color palette](https://en.wikipedia.org/wiki/ANSI_escape_code#8-bit) number. Some useful values: `240` (darker grey), `242` (default mid-grey), `245` (lighter grey), `8` (bright black), `244` (light grey).
 
 Inline suggestions are enabled by default. Set `enabled = false` to disable them entirely (zero performance overhead when disabled).
 
@@ -542,6 +568,7 @@ branding = true             # show "Copa history" group header
 enabled = true              # set to false to disable
 min_length = 2              # minimum chars before querying
 tab_accept = 2              # 1 = accept directly, 2 = open menu first
+color = 242                 # ghost text color (256-color palette)
 
 # Composition key behavior (continue vs close)
 # "continue" keys re-open fzf so you can chain another command
@@ -577,6 +604,7 @@ continue = []
 
 | Command | Purpose |
 |---------|---------|
+| `copa setup` | Interactive setup wizard |
 | `copa add "cmd" -d "desc" -g group -f "flag: desc"` | Save a command (with optional flags) |
 | `copa edit ID [-d desc] [-g group] [-f flags] [--pin]` | Edit a command's metadata |
 | `copa remove ID` | Remove a command |
