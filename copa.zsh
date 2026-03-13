@@ -311,7 +311,6 @@ _copa_history_complete() {
             compadd -U -Q -V 'copa-suggestion' -X 'SUGGESTED' -o nosort -- "$insert_text"
         fi
         compstate[list]='list force'
-        compstate[insert]='menu'
     fi
     # In fallback mode, only show when native completers found nothing
     if [[ "$_COPA_COMPLETION_MODE" == 'fallback' ]]; then
@@ -414,8 +413,9 @@ _copa_suggest_backward_delete_char() {
 zle -N backward-delete-char _copa_suggest_backward_delete_char
 
 # Tab: accept suggestion or open completion menu.
-# Uses menu-complete (not expand-or-complete) to enter menu-select
-# mode immediately on the first Tab press.
+# Don't call _copa_suggest_fetch after menu-complete — menu-select
+# runs asynchronously and fetch would overwrite the display with
+# ghost text.  The self-insert wrapper re-fetches on the next keystroke.
 _copa_suggest_expand_or_complete() {
   if [[ -n "$_COPA_SUGGESTION" ]]; then
     if [[ "$_COPA_SUGGEST_TAB_ACCEPT" == '1' ]]; then
@@ -428,8 +428,7 @@ _copa_suggest_expand_or_complete() {
       local pending="$_COPA_SUGGESTION"
       _copa_suggest_clear
       _COPA_SUGGEST_PENDING="$pending"
-      zle expand-or-complete
-      _copa_suggest_fetch  # re-suggest after menu closes
+      zle menu-complete
     fi
     return
   fi
@@ -438,8 +437,7 @@ _copa_suggest_expand_or_complete() {
     _copa_suggest_fetch
     return
   fi
-  zle expand-or-complete
-  _copa_suggest_fetch  # re-suggest after menu closes
+  zle menu-complete
 }
 zle -N _copa_suggest_expand_or_complete
 bindkey '^I' _copa_suggest_expand_or_complete
@@ -514,12 +512,10 @@ zle -N up-line-or-history _copa_suggest_up_line_or_history
 
 _copa_suggest_down_line_or_history() {
   if [[ -n "$_COPA_SUGGESTION" ]]; then
-    # Suggestion showing: open completion menu with suggestion at top
     local pending="$_COPA_SUGGESTION"
     _copa_suggest_clear
     _COPA_SUGGEST_PENDING="$pending"
-    zle expand-or-complete
-    _copa_suggest_fetch
+    zle menu-complete
   else
     zle .down-line-or-history
   fi
@@ -534,12 +530,10 @@ zle -N up-line-or-search _copa_suggest_up_line_or_search
 
 _copa_suggest_down_line_or_search() {
   if [[ -n "$_COPA_SUGGESTION" ]]; then
-    # Suggestion showing: open completion menu with suggestion at top
     local pending="$_COPA_SUGGESTION"
     _copa_suggest_clear
     _COPA_SUGGEST_PENDING="$pending"
-    zle expand-or-complete
-    _copa_suggest_fetch
+    zle menu-complete
   else
     zle .down-line-or-search
   fi
