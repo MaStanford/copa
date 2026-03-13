@@ -387,8 +387,9 @@ _copa_suggest_fetch() {
 
 # --- Widget wrappers ---
 
-# self-insert: type a character, then fetch suggestion
+# self-insert: type a character, unlatch, then fetch suggestion
 _copa_suggest_self_insert() {
+  _COPA_SUGGEST_LATCHED=0
   zle .self-insert
   _copa_suggest_fetch
 }
