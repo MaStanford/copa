@@ -311,6 +311,7 @@ _copa_history_complete() {
             compadd -U -Q -V 'copa-suggestion' -X 'SUGGESTED' -o nosort -- "$insert_text"
         fi
         compstate[list]='list force'
+        compstate[insert]='menu'
     fi
     # In fallback mode, only show when native completers found nothing
     if [[ "$_COPA_COMPLETION_MODE" == 'fallback' ]]; then
@@ -427,7 +428,7 @@ _copa_suggest_expand_or_complete() {
       local pending="$_COPA_SUGGESTION"
       _copa_suggest_clear
       _COPA_SUGGEST_PENDING="$pending"
-      zle menu-complete
+      zle expand-or-complete
       _copa_suggest_fetch  # re-suggest after menu closes
     fi
     return
@@ -437,7 +438,7 @@ _copa_suggest_expand_or_complete() {
     _copa_suggest_fetch
     return
   fi
-  zle menu-complete
+  zle expand-or-complete
   _copa_suggest_fetch  # re-suggest after menu closes
 }
 zle -N _copa_suggest_expand_or_complete
@@ -517,7 +518,7 @@ _copa_suggest_down_line_or_history() {
     local pending="$_COPA_SUGGESTION"
     _copa_suggest_clear
     _COPA_SUGGEST_PENDING="$pending"
-    zle menu-complete
+    zle expand-or-complete
     _copa_suggest_fetch
   else
     zle .down-line-or-history
@@ -537,7 +538,7 @@ _copa_suggest_down_line_or_search() {
     local pending="$_COPA_SUGGESTION"
     _copa_suggest_clear
     _COPA_SUGGEST_PENDING="$pending"
-    zle menu-complete
+    zle expand-or-complete
     _copa_suggest_fetch
   else
     zle .down-line-or-search

@@ -916,7 +916,7 @@ class TestTabAcceptZsh:
         # Tab widget checks tab_accept internally for mode 1 vs 2
         assert "_COPA_SUGGEST_TAB_ACCEPT" in func_block
         assert "_copa_suggest_clear" in func_block
-        assert "zle menu-complete" in func_block
+        assert "zle expand-or-complete" in func_block
         # Mode 2 sets pending and opens completion menu
         assert "_COPA_SUGGEST_PENDING" in func_block
         # Tab is bound via bindkey, not by overriding expand-or-complete
@@ -928,7 +928,7 @@ class TestTabAcceptZsh:
         func_block = content[start : start + 800]
         assert "_COPA_SUGGEST_TAB_ACCEPT" in func_block
         assert "_copa_suggest_clear" in func_block
-        assert "zle menu-complete" in func_block
+        assert "zle expand-or-complete" in func_block
         assert "_COPA_SUGGEST_PENDING" in func_block
         assert "bindkey '^I' _copa_suggest_expand_or_complete" in content
 
@@ -940,7 +940,7 @@ class TestTabAcceptZsh:
         assert ".down-line-or-history" in func_block
         # Down arrow with suggestion: hoists to completion menu
         assert "_COPA_SUGGEST_PENDING" in func_block
-        assert "zle menu-complete" in func_block
+        assert "zle expand-or-complete" in func_block
 
     def test_root_zsh_down_opens_menu_or_history(self):
         content = self._read_zsh("copa.zsh")
@@ -949,7 +949,7 @@ class TestTabAcceptZsh:
         assert "_copa_suggest_clear" in func_block
         assert ".down-line-or-history" in func_block
         assert "_COPA_SUGGEST_PENDING" in func_block
-        assert "zle menu-complete" in func_block
+        assert "zle expand-or-complete" in func_block
 
     def test_packaged_zsh_clear_resets_pending(self):
         content = self._read_zsh("copa/copa.zsh")
