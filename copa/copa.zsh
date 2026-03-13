@@ -342,6 +342,10 @@ _copa_history_complete() {
     zstyle ':completion:*' menu select
     zmodload zsh/complist 2>/dev/null
     bindkey -M menuselect '^I' .accept-line
+    # Escape cancels the menu and restores the original buffer
+    bindkey -M menuselect '^[' send-break
+    # Space accepts the focused completion and closes the menu
+    bindkey -M menuselect ' ' .accept-line
     # Raise threshold before "show all N?" prompt
     LISTMAX=200
     # Copa completion branding: show group description headers
