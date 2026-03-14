@@ -16,7 +16,9 @@ Copa tracks the commands you run, ranks them by frequency and recency, and gives
 - **LLM descriptions** — `copa fix --auto` uses Claude or ollama to generate descriptions for undescribed commands
 - **Script protocol** — `#@ Description:` / `#@ Usage:` / `#@ Purpose:` / `#@ Flag:` headers in your scripts are auto-detected by `copa scan` across all `$PATH` directories
 - **Flag documentation** — document command flags with descriptions; flags are searchable, visible in the preview pane, and preserved in `.copa` exports
+- **Inline suggestions** — ghost text appears as you type; Tab accepts or opens a completion menu with the suggestion highlighted
 - **Groups & Ctrl+G** — organize commands by project, device, or workflow; assign groups inline from the fzf palette with Ctrl+G
+- **Bulk operations** — Ctrl+B enters select mode for batch group assignment, batch deletion, or batch LLM description
 - **Sharing & `copa create`** — export/import command sets as `.copa` JSON files; `copa create` scaffolds a `.copa` file from an existing group
 - **Set filtering** — scope list, search, and fzf to a specific shared set with `--set`
 - **MCP server** — expose your commands to Claude Code (or any MCP client)
@@ -144,10 +146,39 @@ While the fzf palette is open, these keys are available:
 | **Ctrl+N** | Cycle group | Cycles through groups: (all) → group1 → group2 → ... → (all) |
 | **Ctrl+D** | Describe | Generate/edit a description using LLM (with tty-aware input) |
 | **Ctrl+F** | Edit flags | Add flag documentation to the highlighted command |
+| **Ctrl+B** | Select mode | Enter multi-select for bulk operations (see below) |
 | **Ctrl+H** | Toggle header | Show/hide the key hints for more screen space |
 | **ESC** | Cancel/back | In scope/group mode: returns to command list. Otherwise: closes fzf |
 
 Keybindings are configurable via `~/.copa/config.toml`. See [Configuration](#configuration).
+
+### Select mode (bulk operations)
+
+Press **Ctrl+B** from the Ctrl+R palette to enter **select mode**. This opens a new fzf view with multi-select enabled:
+
+- **Tab** toggles selection on individual commands
+- **Ctrl+R** cycles modes (all → frequent → recent) just like the main palette
+- **Enter** confirms your selection and shows the batch action menu
+- **ESC** cancels and returns to your prompt
+
+After selecting commands, Copa shows a batch action menu:
+
+```
+Selected 5 command(s).
+  g = assign group
+  d = delete
+  a = auto-describe (LLM)
+  q = cancel
+Action:
+```
+
+| Action | What it does |
+|--------|-------------|
+| **g** | Assign all selected commands to a group (or clear their group) |
+| **d** | Delete all selected commands (with confirmation) |
+| **a** | Auto-generate descriptions for all selected commands using your configured LLM backend |
+
+This is useful for organizing large command sets — select 20 undescribed commands and batch-describe them, or move a set of related commands into a group in one step.
 
 ### Preview pane
 
@@ -234,9 +265,29 @@ $ git pu█sh origin main     ← grey ghost text
 
 ### Tab accept mode
 
-By default (`tab_accept = 2`), pressing Tab when a suggestion is showing highlights the ghost text (changes from dim grey to cyan/bold) to indicate it's ready to be accepted. Pressing Tab again accepts it into the buffer. Pressing Esc reverts to dim grey without accepting. This two-step flow gives you a visual confirmation before committing.
+Copa supports two Tab behaviors when a suggestion is showing:
 
-Set `tab_accept = 1` to restore the old behavior where a single Tab directly accepts the suggestion.
+**Menu select** (`tab_accept = 2`, default):
+1. Press **Tab** — ghost text clears, a completion menu opens with the Copa suggestion highlighted at the top, alongside native completions below
+2. Press **Tab** or **Space** — accepts the highlighted item
+3. Press **Escape** — cancels the menu, restores your original text
+4. Use **arrow keys** to navigate if you want a different completion
+
+This gives you a chance to see alternatives before committing. The Copa suggestion is always the first item in the menu.
+
+**Inline accept** (`tab_accept = 1`):
+- Press **Tab** — the suggestion is accepted directly into your command line. One keystroke, done.
+
+### Completion menu navigation
+
+When the completion menu is open (from Tab in `tab_accept = 2` mode or from normal tab completion):
+
+| Key | Action |
+|-----|--------|
+| **Tab** | Accept the highlighted completion |
+| **Space** | Accept the highlighted completion |
+| **Escape** | Cancel — dismiss menu, restore original text |
+| **Arrow keys** | Navigate between completions |
 
 ### Backspace latch
 
@@ -566,6 +617,7 @@ group = "ctrl-g"            # assign group (inline modal)
 flags = "ctrl-f"            # edit flags
 filter_group = "ctrl-s"     # scope by group (inline modal)
 cycle_group = "ctrl-n"      # cycle through groups
+select = "ctrl-b"           # enter select mode (bulk operations)
 toggle_header = "ctrl-h"    # show/hide key hints
 
 # Tab completion behavior
