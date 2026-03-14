@@ -916,10 +916,13 @@ class TestTabAcceptZsh:
     def test_packaged_zsh_tab_checks_accept_mode(self):
         content = self._read_zsh("copa/copa.zsh")
         start = content.index("_copa_suggest_expand_or_complete()")
-        func_block = content[start : start + 800]
+        func_block = content[start : start + 1000]
         # Tab widget checks tab_accept internally for mode 1 vs 2
         assert "_COPA_SUGGEST_TAB_ACCEPT" in func_block
         assert "_copa_suggest_clear" in func_block
+        # Mode 2 uses expand-or-complete so menu-select highlights by group-order
+        assert "zle .expand-or-complete" in func_block
+        # Non-suggestion fallback still uses menu-complete
         assert "zle menu-complete" in func_block
         # Mode 2 sets pending and opens completion menu
         assert "_COPA_SUGGEST_PENDING" in func_block
@@ -929,9 +932,10 @@ class TestTabAcceptZsh:
     def test_root_zsh_tab_checks_accept_mode(self):
         content = self._read_zsh("copa.zsh")
         start = content.index("_copa_suggest_expand_or_complete()")
-        func_block = content[start : start + 800]
+        func_block = content[start : start + 1000]
         assert "_COPA_SUGGEST_TAB_ACCEPT" in func_block
         assert "_copa_suggest_clear" in func_block
+        assert "zle .expand-or-complete" in func_block
         assert "zle menu-complete" in func_block
         assert "_COPA_SUGGEST_PENDING" in func_block
         assert "bindkey '^I' _copa_suggest_expand_or_complete" in content
@@ -944,7 +948,7 @@ class TestTabAcceptZsh:
         assert ".down-line-or-history" in func_block
         # Down arrow with suggestion: hoists to completion menu
         assert "_COPA_SUGGEST_PENDING" in func_block
-        assert "zle menu-complete" in func_block
+        assert "zle .expand-or-complete" in func_block
 
     def test_root_zsh_down_opens_menu_or_history(self):
         content = self._read_zsh("copa.zsh")
@@ -953,7 +957,7 @@ class TestTabAcceptZsh:
         assert "_copa_suggest_clear" in func_block
         assert ".down-line-or-history" in func_block
         assert "_COPA_SUGGEST_PENDING" in func_block
-        assert "zle menu-complete" in func_block
+        assert "zle .expand-or-complete" in func_block
 
     def test_packaged_zsh_clear_resets_pending(self):
         content = self._read_zsh("copa/copa.zsh")

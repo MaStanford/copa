@@ -421,7 +421,7 @@ _copa_suggest_backward_delete_char() {
 zle -N backward-delete-char _copa_suggest_backward_delete_char
 
 # Tab: accept suggestion or open completion menu.
-# Don't call _copa_suggest_fetch after menu-complete — menu-select
+# Don't call _copa_suggest_fetch after expand-or-complete — menu-select
 # runs asynchronously and fetch would overwrite the display with
 # ghost text.  The self-insert wrapper re-fetches on the next keystroke.
 _copa_suggest_expand_or_complete() {
@@ -432,11 +432,14 @@ _copa_suggest_expand_or_complete() {
       CURSOR=${#BUFFER}
       _copa_suggest_clear
     else
-      # tab_accept=2: open completion menu with suggestion hoisted to top
+      # tab_accept=2: open completion menu with suggestion highlighted
+      # Use .expand-or-complete (not menu-complete) so menu-select
+      # highlights the first item in group-order (copa-suggestion),
+      # rather than the first match from the first completer.
       local pending="$_COPA_SUGGESTION"
       _copa_suggest_clear
       _COPA_SUGGEST_PENDING="$pending"
-      zle menu-complete
+      zle .expand-or-complete
     fi
     return
   fi
@@ -524,7 +527,7 @@ _copa_suggest_down_line_or_history() {
     local pending="$_COPA_SUGGESTION"
     _copa_suggest_clear
     _COPA_SUGGEST_PENDING="$pending"
-    zle menu-complete
+    zle .expand-or-complete
   else
     zle .down-line-or-history
   fi
@@ -542,7 +545,7 @@ _copa_suggest_down_line_or_search() {
     local pending="$_COPA_SUGGESTION"
     _copa_suggest_clear
     _COPA_SUGGEST_PENDING="$pending"
-    zle menu-complete
+    zle .expand-or-complete
   else
     zle .down-line-or-search
   fi
