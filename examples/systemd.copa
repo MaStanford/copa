@@ -1,0 +1,63 @@
+{
+    "copa_version": "1.0",
+    "name": "systemd",
+    "description": "Linux service management with systemd",
+    "author": "copa",
+    "commands": [
+        {
+            "command": "sudo systemctl status",
+            "description": "Check status of a service"
+        },
+        {
+            "command": "sudo systemctl start",
+            "description": "Start a service"
+        },
+        {
+            "command": "sudo systemctl stop",
+            "description": "Stop a service"
+        },
+        {
+            "command": "sudo systemctl restart",
+            "description": "Restart a service"
+        },
+        {
+            "command": "sudo systemctl enable",
+            "description": "Enable service to start on boot"
+        },
+        {
+            "command": "sudo systemctl disable",
+            "description": "Disable service from starting on boot"
+        },
+        {
+            "command": "sudo systemctl list-units --type=service --state=running",
+            "description": "List all running services"
+        },
+        {
+            "command": "sudo systemctl list-units --type=service --state=failed",
+            "description": "List all failed services"
+        },
+        {
+            "command": "journalctl -u --follow",
+            "description": "Follow logs for a specific service",
+            "flags": {
+                "-u": "Filter by unit/service name",
+                "--follow": "Stream new log entries",
+                "--since": "Show logs since time (e.g. '1 hour ago')",
+                "-n": "Show last N lines",
+                "--no-pager": "Don't pipe through pager"
+            }
+        },
+        {
+            "command": "journalctl --since '1 hour ago'",
+            "description": "Show all system logs from the last hour"
+        },
+        {
+            "command": "sudo systemctl daemon-reload",
+            "description": "Reload systemd after editing unit files"
+        },
+        {
+            "command": "systemctl list-timers",
+            "description": "List all systemd timers (cron replacements)"
+        }
+    ]
+}

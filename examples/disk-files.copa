@@ -1,0 +1,67 @@
+{
+    "copa_version": "1.0",
+    "name": "disk-files",
+    "description": "Disk usage, file management, and filesystem commands",
+    "author": "copa",
+    "commands": [
+        {
+            "command": "du -sh *",
+            "description": "Show size of each item in current directory"
+        },
+        {
+            "command": "du -sh * | sort -rh | head -20",
+            "description": "Top 20 largest files/dirs in current directory"
+        },
+        {
+            "command": "df -h",
+            "description": "Show disk space usage for all mounted filesystems"
+        },
+        {
+            "command": "find . -name",
+            "description": "Find files by name pattern",
+            "flags": {
+                "-name": "Match filename (case-sensitive)",
+                "-iname": "Match filename (case-insensitive)",
+                "-type f": "Files only",
+                "-type d": "Directories only",
+                "-mtime -7": "Modified in last 7 days",
+                "-size +100M": "Larger than 100MB",
+                "-exec": "Run command on each result"
+            }
+        },
+        {
+            "command": "find . -type f -size +100M",
+            "description": "Find files larger than 100MB"
+        },
+        {
+            "command": "find . -name '*.log' -mtime +30 -delete",
+            "description": "Delete log files older than 30 days"
+        },
+        {
+            "command": "tar -czf archive.tar.gz",
+            "description": "Create gzip-compressed tar archive",
+            "flags": {
+                "-c": "Create archive",
+                "-z": "Compress with gzip",
+                "-f": "Output filename",
+                "-v": "Verbose (list files)"
+            }
+        },
+        {
+            "command": "tar -xzf archive.tar.gz",
+            "description": "Extract gzip-compressed tar archive"
+        },
+        {
+            "command": "ln -s target link_name",
+            "description": "Create symbolic link"
+        },
+        {
+            "command": "lsof +D .",
+            "description": "List open files in current directory"
+        },
+        {
+            "command": "tree -L 2 -I node_modules",
+            "description": "Show directory tree (2 levels, ignore node_modules)"
+        }
+    ]
+}

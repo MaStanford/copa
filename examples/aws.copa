@@ -1,0 +1,74 @@
+{
+    "copa_version": "1.0",
+    "name": "aws",
+    "description": "AWS CLI commands for cloud infrastructure management",
+    "author": "copa",
+    "commands": [
+        {
+            "command": "aws s3 ls",
+            "description": "List S3 buckets"
+        },
+        {
+            "command": "aws s3 cp",
+            "description": "Copy files to/from S3",
+            "flags": {
+                "--recursive": "Copy directories recursively",
+                "--exclude": "Exclude files matching pattern",
+                "--include": "Include files matching pattern"
+            }
+        },
+        {
+            "command": "aws s3 sync",
+            "description": "Sync local directory with S3 bucket",
+            "flags": {
+                "--delete": "Delete files in destination not in source",
+                "--dryrun": "Show what would be done without doing it"
+            }
+        },
+        {
+            "command": "aws ec2 describe-instances",
+            "description": "List EC2 instances with details",
+            "flags": {
+                "--filters": "Filter by tag, state, etc.",
+                "--query": "JMESPath query to filter output",
+                "--output table": "Format output as table"
+            }
+        },
+        {
+            "command": "aws ec2 start-instances --instance-ids",
+            "description": "Start one or more EC2 instances"
+        },
+        {
+            "command": "aws ec2 stop-instances --instance-ids",
+            "description": "Stop one or more EC2 instances"
+        },
+        {
+            "command": "aws logs tail --follow",
+            "description": "Tail CloudWatch log group in real time"
+        },
+        {
+            "command": "aws sts get-caller-identity",
+            "description": "Show current AWS identity (account, user, ARN)"
+        },
+        {
+            "command": "aws ssm start-session --target",
+            "description": "SSH into EC2 instance via SSM (no key needed)"
+        },
+        {
+            "command": "aws lambda invoke --function-name",
+            "description": "Invoke a Lambda function",
+            "flags": {
+                "--payload": "JSON input payload",
+                "--log-type Tail": "Include execution logs in response"
+            }
+        },
+        {
+            "command": "aws ecr get-login-password | docker login --username AWS --password-stdin",
+            "description": "Authenticate Docker to ECR registry"
+        },
+        {
+            "command": "aws cloudformation deploy --template-file --stack-name",
+            "description": "Deploy or update a CloudFormation stack"
+        }
+    ]
+}

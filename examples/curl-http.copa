@@ -1,0 +1,66 @@
+{
+    "copa_version": "1.0",
+    "name": "curl-http",
+    "description": "HTTP requests and API testing with curl",
+    "author": "copa",
+    "commands": [
+        {
+            "command": "curl -s",
+            "description": "Silent GET request",
+            "flags": {
+                "-s": "Silent mode (no progress bar)",
+                "-S": "Show errors even in silent mode",
+                "-o": "Write output to file"
+            }
+        },
+        {
+            "command": "curl -X POST -H 'Content-Type: application/json' -d",
+            "description": "POST JSON data to an API"
+        },
+        {
+            "command": "curl -X PUT -H 'Content-Type: application/json' -d",
+            "description": "PUT JSON data to update a resource"
+        },
+        {
+            "command": "curl -X DELETE",
+            "description": "Send DELETE request"
+        },
+        {
+            "command": "curl -I",
+            "description": "Fetch HTTP headers only (HEAD request)"
+        },
+        {
+            "command": "curl -o /dev/null -s -w '%{http_code}'",
+            "description": "Get just the HTTP status code"
+        },
+        {
+            "command": "curl -L -O",
+            "description": "Download file following redirects",
+            "flags": {
+                "-L": "Follow redirects",
+                "-O": "Save with remote filename",
+                "-C -": "Resume interrupted download"
+            }
+        },
+        {
+            "command": "curl -u user:pass",
+            "description": "Request with Basic Auth credentials"
+        },
+        {
+            "command": "curl -H 'Authorization: Bearer TOKEN'",
+            "description": "Request with Bearer token auth"
+        },
+        {
+            "command": "curl -s | jq .",
+            "description": "Fetch JSON and pretty-print with jq"
+        },
+        {
+            "command": "curl -w '\\nTime: %{time_total}s\\n'",
+            "description": "Show request timing information"
+        },
+        {
+            "command": "curl --retry 3 --retry-delay 2",
+            "description": "Retry failed request up to 3 times"
+        }
+    ]
+}

@@ -1,0 +1,59 @@
+{
+    "copa_version": "1.0",
+    "name": "ssh-remote",
+    "description": "SSH, SCP, and remote server management",
+    "author": "copa",
+    "commands": [
+        {
+            "command": "ssh -i ~/.ssh/id_rsa user@host",
+            "description": "SSH with specific identity key"
+        },
+        {
+            "command": "ssh -L 8080:localhost:80 user@host",
+            "description": "Local port forward (access remote port locally)",
+            "flags": {
+                "-L": "Local port:remote_host:remote_port"
+            }
+        },
+        {
+            "command": "ssh -R 9090:localhost:3000 user@host",
+            "description": "Remote port forward (expose local port to remote)"
+        },
+        {
+            "command": "ssh -D 1080 user@host",
+            "description": "SOCKS proxy tunnel through remote host"
+        },
+        {
+            "command": "scp -r local_dir user@host:/remote/path",
+            "description": "Copy directory to remote host recursively"
+        },
+        {
+            "command": "rsync -avz --progress",
+            "description": "Sync files with compression and progress",
+            "flags": {
+                "-a": "Archive mode (preserves permissions, timestamps)",
+                "-v": "Verbose output",
+                "-z": "Compress during transfer",
+                "--progress": "Show transfer progress",
+                "--delete": "Delete files in dest not in source",
+                "--dry-run": "Show what would be done"
+            }
+        },
+        {
+            "command": "ssh-keygen -t ed25519 -C",
+            "description": "Generate modern SSH key pair"
+        },
+        {
+            "command": "ssh-copy-id user@host",
+            "description": "Install SSH key on remote host for passwordless login"
+        },
+        {
+            "command": "ssh-add -l",
+            "description": "List keys loaded in SSH agent"
+        },
+        {
+            "command": "sshfs user@host:/remote/path /local/mount",
+            "description": "Mount remote filesystem over SSH"
+        }
+    ]
+}

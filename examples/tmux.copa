@@ -1,0 +1,48 @@
+{
+    "copa_version": "1.0",
+    "name": "tmux",
+    "description": "Terminal multiplexer session management",
+    "author": "copa",
+    "commands": [
+        {
+            "command": "tmux new -s",
+            "description": "Create a new named session"
+        },
+        {
+            "command": "tmux attach -t",
+            "description": "Attach to an existing session"
+        },
+        {
+            "command": "tmux ls",
+            "description": "List all tmux sessions"
+        },
+        {
+            "command": "tmux kill-session -t",
+            "description": "Kill a specific session"
+        },
+        {
+            "command": "tmux kill-server",
+            "description": "Kill the tmux server and all sessions"
+        },
+        {
+            "command": "tmux split-window -h",
+            "description": "Split pane horizontally"
+        },
+        {
+            "command": "tmux split-window -v",
+            "description": "Split pane vertically"
+        },
+        {
+            "command": "tmux select-pane -t",
+            "description": "Switch to a specific pane"
+        },
+        {
+            "command": "tmux resize-pane -D 10",
+            "description": "Resize pane down by 10 lines"
+        },
+        {
+            "command": "tmux send-keys -t",
+            "description": "Send keystrokes to a specific pane (scripting)"
+        }
+    ]
+}

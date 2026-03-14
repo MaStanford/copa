@@ -1,0 +1,69 @@
+{
+    "copa_version": "1.0",
+    "name": "terraform",
+    "description": "Terraform infrastructure-as-code commands",
+    "author": "copa",
+    "commands": [
+        {
+            "command": "terraform init",
+            "description": "Initialize Terraform working directory and download providers"
+        },
+        {
+            "command": "terraform plan",
+            "description": "Preview infrastructure changes before applying",
+            "flags": {
+                "-out=plan.tfplan": "Save plan to file for later apply",
+                "-var": "Set a variable value",
+                "-target": "Plan only specific resource"
+            }
+        },
+        {
+            "command": "terraform apply",
+            "description": "Apply infrastructure changes",
+            "flags": {
+                "-auto-approve": "Skip interactive approval",
+                "-var-file": "Load variables from file"
+            }
+        },
+        {
+            "command": "terraform destroy",
+            "description": "Destroy all managed infrastructure",
+            "flags": {
+                "-auto-approve": "Skip interactive approval",
+                "-target": "Destroy only specific resource"
+            }
+        },
+        {
+            "command": "terraform state list",
+            "description": "List all resources in state"
+        },
+        {
+            "command": "terraform state show",
+            "description": "Show details of a specific resource in state"
+        },
+        {
+            "command": "terraform output",
+            "description": "Show output values from state"
+        },
+        {
+            "command": "terraform fmt -recursive",
+            "description": "Format all .tf files recursively"
+        },
+        {
+            "command": "terraform validate",
+            "description": "Check configuration syntax and consistency"
+        },
+        {
+            "command": "terraform import",
+            "description": "Import existing infrastructure into Terraform state"
+        },
+        {
+            "command": "terraform workspace list",
+            "description": "List available workspaces"
+        },
+        {
+            "command": "terraform workspace select",
+            "description": "Switch to a different workspace"
+        }
+    ]
+}

@@ -1,0 +1,56 @@
+{
+    "copa_version": "1.0",
+    "name": "homebrew",
+    "description": "Homebrew package manager for macOS",
+    "author": "copa",
+    "commands": [
+        {
+            "command": "brew install",
+            "description": "Install a package"
+        },
+        {
+            "command": "brew uninstall",
+            "description": "Remove a package"
+        },
+        {
+            "command": "brew update",
+            "description": "Update Homebrew and package listings"
+        },
+        {
+            "command": "brew upgrade",
+            "description": "Upgrade all installed packages"
+        },
+        {
+            "command": "brew list",
+            "description": "List all installed packages"
+        },
+        {
+            "command": "brew search",
+            "description": "Search for available packages"
+        },
+        {
+            "command": "brew info",
+            "description": "Show details about a package"
+        },
+        {
+            "command": "brew services list",
+            "description": "List all managed background services"
+        },
+        {
+            "command": "brew services start",
+            "description": "Start a background service"
+        },
+        {
+            "command": "brew services stop",
+            "description": "Stop a background service"
+        },
+        {
+            "command": "brew cleanup",
+            "description": "Remove old versions and cached downloads"
+        },
+        {
+            "command": "brew doctor",
+            "description": "Check system for potential Homebrew problems"
+        }
+    ]
+}

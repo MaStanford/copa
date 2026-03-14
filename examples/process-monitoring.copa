@@ -1,0 +1,60 @@
+{
+    "copa_version": "1.0",
+    "name": "process-monitoring",
+    "description": "Process management, monitoring, and debugging",
+    "author": "copa",
+    "commands": [
+        {
+            "command": "ps aux | grep",
+            "description": "Find processes matching a pattern"
+        },
+        {
+            "command": "ps aux --sort=-%mem | head -20",
+            "description": "Top 20 processes by memory usage"
+        },
+        {
+            "command": "ps aux --sort=-%cpu | head -20",
+            "description": "Top 20 processes by CPU usage"
+        },
+        {
+            "command": "top -o %MEM",
+            "description": "Interactive process viewer sorted by memory"
+        },
+        {
+            "command": "htop",
+            "description": "Interactive process viewer with color UI"
+        },
+        {
+            "command": "kill -9",
+            "description": "Force kill a process by PID"
+        },
+        {
+            "command": "pkill -f",
+            "description": "Kill processes matching a pattern"
+        },
+        {
+            "command": "lsof -i :8080",
+            "description": "Find process using port 8080"
+        },
+        {
+            "command": "lsof -i -P -n",
+            "description": "List all network connections with PIDs"
+        },
+        {
+            "command": "watch -n 2",
+            "description": "Run command every 2 seconds and show output",
+            "flags": {
+                "-n": "Refresh interval in seconds",
+                "-d": "Highlight differences between runs"
+            }
+        },
+        {
+            "command": "nohup command &",
+            "description": "Run command in background surviving terminal close"
+        },
+        {
+            "command": "strace -p",
+            "description": "Trace system calls of a running process (Linux)"
+        }
+    ]
+}

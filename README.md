@@ -434,10 +434,20 @@ Copa ships with ready-to-use `.copa` files in the [`examples/`](examples/) direc
 | [`git.copa`](examples/git.copa) | Essential Git commands |
 | [`docker.copa`](examples/docker.copa) | Docker container management |
 | [`python-dev.copa`](examples/python-dev.copa) | Python development workflow |
+| [`npm.copa`](examples/npm.copa) | Node.js package management |
 | [`network.copa`](examples/network.copa) | Network diagnostics |
+| [`curl-http.copa`](examples/curl-http.copa) | HTTP requests and API testing |
+| [`ssh-remote.copa`](examples/ssh-remote.copa) | SSH, SCP, and remote server management |
 | [`adb.copa`](examples/adb.copa) | Android Debug Bridge |
+| [`aws.copa`](examples/aws.copa) | AWS CLI cloud infrastructure |
+| [`terraform.copa`](examples/terraform.copa) | Terraform infrastructure-as-code |
 | [`k8s.copa`](examples/k8s.copa) | Kubernetes cluster management |
+| [`systemd.copa`](examples/systemd.copa) | Linux service management |
 | [`sysadmin.copa`](examples/sysadmin.copa) | System administration |
+| [`process-monitoring.copa`](examples/process-monitoring.copa) | Process management and debugging |
+| [`disk-files.copa`](examples/disk-files.copa) | Disk usage and file management |
+| [`tmux.copa`](examples/tmux.copa) | Terminal multiplexer sessions |
+| [`homebrew.copa`](examples/homebrew.copa) | Homebrew package manager (macOS) |
 
 Load any of them:
 

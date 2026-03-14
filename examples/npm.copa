@@ -1,0 +1,56 @@
+{
+    "copa_version": "1.0",
+    "name": "npm",
+    "description": "Node.js package management and project commands",
+    "author": "copa",
+    "commands": [
+        {
+            "command": "npm install",
+            "description": "Install all dependencies from package.json"
+        },
+        {
+            "command": "npm install --save-dev",
+            "description": "Install package as dev dependency"
+        },
+        {
+            "command": "npm run build",
+            "description": "Run the build script"
+        },
+        {
+            "command": "npm run dev",
+            "description": "Start development server"
+        },
+        {
+            "command": "npm test",
+            "description": "Run test suite"
+        },
+        {
+            "command": "npm outdated",
+            "description": "Check for outdated dependencies"
+        },
+        {
+            "command": "npm update",
+            "description": "Update packages to latest semver-compatible versions"
+        },
+        {
+            "command": "npm audit",
+            "description": "Check for security vulnerabilities in dependencies"
+        },
+        {
+            "command": "npm audit fix",
+            "description": "Automatically fix security vulnerabilities"
+        },
+        {
+            "command": "npm ls --depth=0",
+            "description": "List top-level installed packages"
+        },
+        {
+            "command": "npm cache clean --force",
+            "description": "Clear the npm cache"
+        },
+        {
+            "command": "npx",
+            "description": "Run a package binary without installing globally"
+        }
+    ]
+}
