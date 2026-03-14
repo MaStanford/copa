@@ -238,6 +238,7 @@ def reset(yes: bool):
     if not yes:
         click.confirm(click.style("Delete all commands and start fresh?", fg="red"), abort=True)
 
+    db.conn.close()
     db_path.unlink()
     # Re-create empty database
     get_db()
