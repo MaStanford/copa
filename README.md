@@ -626,6 +626,7 @@ continue = []
 | `copa share list` | List shared sets |
 | `copa share sync DIR` | Sync .copa files from dir |
 | `copa import FILE [-g group]` | Import commands from markdown |
+| `copa reset` | Wipe database and start fresh (keeps config) |
 | `copa uninstall` | Remove Copa data and show cleanup steps |
 
 ## How Scoring Works

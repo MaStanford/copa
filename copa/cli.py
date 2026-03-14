@@ -213,6 +213,38 @@ def setup():
     click.echo()
 
 
+# --- reset ---
+
+
+@cli.command()
+@click.option("-y", "--yes", is_flag=True, help="Skip confirmation prompt.")
+def reset(yes: bool):
+    """Wipe the command database and start fresh. Keeps your config."""
+    db_path = Path.home() / ".copa" / "copa.db"
+
+    if not db_path.is_file():
+        click.echo("No database found — nothing to reset.")
+        return
+
+    from .cli_common import get_db
+
+    db = get_db()
+    stats = db.get_stats()
+    click.echo(f"Database: {db_path}")
+    cmds, grps, sets = stats["total_commands"], stats["total_groups"], stats["shared_sets"]
+    click.echo(f"  {cmds} commands, {grps} groups, {sets} shared sets")
+    click.echo()
+
+    if not yes:
+        click.confirm(click.style("Delete all commands and start fresh?", fg="red"), abort=True)
+
+    db_path.unlink()
+    # Re-create empty database
+    get_db()
+    click.echo(click.style("Database reset.", fg="green") + " Config preserved.")
+    click.echo("Run " + click.style("copa sync", bold=True) + " to re-import your shell history.")
+
+
 # --- uninstall ---
 
 
