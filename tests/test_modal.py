@@ -1051,17 +1051,17 @@ class TestTabAcceptZsh:
         content = self._read_zsh("copa/copa.zsh")
         start = content.index("_copa_suggest_end_of_line()")
         func_block = content[start : start + 400]
-        assert '_COPA_SUGGESTION' in func_block
+        assert "_COPA_SUGGESTION" in func_block
         assert 'BUFFER="$_COPA_SUGGESTION"' in func_block
-        assert 'zle .end-of-line' in func_block
+        assert "zle .end-of-line" in func_block
 
     def test_root_zsh_end_of_line_accepts_full(self):
         content = self._read_zsh("copa.zsh")
         start = content.index("_copa_suggest_end_of_line()")
         func_block = content[start : start + 400]
-        assert '_COPA_SUGGESTION' in func_block
+        assert "_COPA_SUGGESTION" in func_block
         assert 'BUFFER="$_COPA_SUGGESTION"' in func_block
-        assert 'zle .end-of-line' in func_block
+        assert "zle .end-of-line" in func_block
 
     def test_packaged_zsh_end_of_line_registered(self):
         content = self._read_zsh("copa/copa.zsh")
