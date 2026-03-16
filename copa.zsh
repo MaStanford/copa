@@ -504,6 +504,20 @@ _copa_suggest_forward_word() {
 }
 zle -N forward-word _copa_suggest_forward_word
 
+# end-of-line (Cmd+Right / End): accept full suggestion if ghost text showing
+_copa_suggest_end_of_line() {
+  if [[ -n "$POSTDISPLAY" && -n "$_COPA_SUGGESTION" && $CURSOR -eq ${#BUFFER} ]]; then
+    BUFFER="$_COPA_SUGGESTION"
+    CURSOR=${#BUFFER}
+    _copa_suggest_clear
+    _COPA_SUGGEST_LATCHED=0
+    _copa_suggest_fetch
+  else
+    zle .end-of-line
+  fi
+}
+zle -N end-of-line _copa_suggest_end_of_line
+
 # accept-line (Enter): clear suggestion + latch, then execute
 _copa_suggest_accept_line() {
   _copa_suggest_clear

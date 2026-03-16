@@ -258,6 +258,7 @@ $ git pu█sh origin main     ← grey ghost text
 | **Tab** | `tab_accept=1`: accept full suggestion. `tab_accept=2` (default): open completion menu with suggestion highlighted at top, native completions below | If latched: unlatch + re-fetch suggestion. Else: normal tab completion |
 | **Down** | Open completion menu with suggestion highlighted at top | History navigation |
 | **Right arrow** | Accept one word, re-fetch | Move cursor right |
+| **Cmd+Right / End** | Accept full suggestion | Move to end of line |
 | Enter | Clear suggestion, execute | Execute |
 | Esc | Dismiss suggestion | Normal Esc |
 | Up | Clear suggestion, navigate history | History navigation |
