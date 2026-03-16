@@ -1,5 +1,5 @@
-# Copa Setup — First-time installation walkthrough
-# Shows: pip install, copa setup wizard, first sync
+# Copa Setup — Installation and first look
+# Shows: install, doctor check, quick command list
 
 Output demos/01-setup.gif
 
@@ -14,51 +14,32 @@ Set Padding 20
 Set Theme "Catppuccin Mocha"
 Set TypingSpeed 50ms
 
-# Title
-Type "# Copa — Command Palette for your shell"
-Enter
-Sleep 1s
-Type "# Let's set it up!"
-Enter
-Sleep 1.5s
-Ctrl+L
-
-# Install
+# Install Copa
 Type "pip install copa-cli"
 Enter
-Sleep 2s
+Sleep 3s
 
-# Run setup wizard
-Type "copa setup"
-Enter
-Sleep 1.5s
-
-# Confirm shell integration
-Type "y"
-Enter
-Sleep 500ms
-
-# Choose tab style (menu select)
-Type "2"
-Enter
-Sleep 500ms
-
-# Import history
-Type "y"
+# Check installation
+Type "copa --version"
 Enter
 Sleep 2s
 
-# Source zshrc
-Type "source ~/.zshrc"
-Enter
-Sleep 1s
-
-# Verify
+# Run doctor to verify everything
 Type "copa doctor"
 Enter
-Sleep 2s
+Sleep 3s
 
-# Done
-Type "# Ready to go! Press Ctrl+R to open the command palette"
+# Show available commands
+Type "copa list | head -15"
+Enter
+Sleep 3s
+
+# Sync shell history
+Type "copa sync"
+Enter
+Sleep 3s
+
+# Show updated stats
+Type "copa doctor"
 Enter
 Sleep 3s

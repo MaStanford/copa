@@ -1,5 +1,5 @@
 # Copa Flags & Describe — Document commands with metadata
-# Shows: adding flags, editing flags via Ctrl+F, LLM describe via Ctrl+D
+# Shows: adding flags, viewing flags in preview pane
 
 Output demos/09-flags-and-describe.gif
 
@@ -17,18 +17,18 @@ Set TypingSpeed 50ms
 # Add a command with flags via CLI
 Type 'copa add "rsync -avz" -d "Sync files" -f "-a: Archive mode" -f "-v: Verbose" -f "-z: Compress"'
 Enter
-Sleep 1.5s
+Sleep 2s
 
 # Show the preview with flags
 Type "copa list"
 Enter
-Sleep 1.5s
+Sleep 2s
 
 # Open palette and preview the flagged command
 Ctrl+R
 Sleep 1s
 Type "rsync"
-Sleep 1.5s
+Sleep 2s
 
 # Preview pane shows flags on the right
 Sleep 2s
@@ -44,24 +44,8 @@ Enter
 Sleep 500ms
 # Empty flag name to finish
 Enter
-Sleep 1.5s
+Sleep 2s
 
 # Escape
 Escape
-Sleep 1s
-
-# Describe a command with LLM (Ctrl+D)
-Ctrl+R
-Sleep 1s
-Type "docker"
-Sleep 800ms
-
-Ctrl+D
 Sleep 2s
-
-# Accept the LLM suggestion
-Enter
-Sleep 2s
-
-Escape
-Sleep 1s
