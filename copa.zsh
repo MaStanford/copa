@@ -300,19 +300,25 @@ eval "$(copa completion zsh)"
 #   never    — disable Copa tab completion entirely
 if [[ "$_COPA_COMPLETION_MODE" != 'never' ]]; then
 
-_copa_history_complete() {
-    # Hoist pending inline suggestion as a completion candidate
-    if [[ -n "$_COPA_SUGGEST_PENDING" ]]; then
-        local pending="$_COPA_SUGGEST_PENDING"
-        _COPA_SUGGEST_PENDING=""
-        local cur_word="${words[CURRENT]}"
-        local prefix_len=$(( ${#LBUFFER} - ${#cur_word} ))
-        local insert_text="${pending:$prefix_len}"
-        if [[ -n "$insert_text" ]]; then
-            compadd -U -Q -V 'copa-suggestion' -X 'SUGGESTED' -o nosort -- "$insert_text"
-        fi
-        compstate[list]='list force'
+# Suggestion completer: runs FIRST so menu-complete highlights the Copa
+# suggestion before native completions.  No-op when nothing is pending.
+# Always returns 1 so the chain continues to _complete and _copa_history_complete;
+# compadd matches persist across completers regardless of return value.
+_copa_suggestion_complete() {
+    [[ -z "$_COPA_SUGGEST_PENDING" ]] && return 1
+    local pending="$_COPA_SUGGEST_PENDING"
+    _COPA_SUGGEST_PENDING=""
+    local cur_word="${words[CURRENT]}"
+    local prefix_len=$(( ${#LBUFFER} - ${#cur_word} ))
+    local insert_text="${pending:$prefix_len}"
+    if [[ -n "$insert_text" ]]; then
+        compadd -U -Q -V 'copa-suggestion' -X 'SUGGESTED' -o nosort -- "$insert_text"
     fi
+    compstate[list]='list force'
+    return 1  # don't stop chain — let _complete and _copa_history_complete also run
+}
+
+_copa_history_complete() {
     # In fallback mode, only show when native completers found nothing
     if [[ "$_COPA_COMPLETION_MODE" == 'fallback' ]]; then
         (( compstate[nmatches] > 0 )) && return
@@ -337,12 +343,14 @@ _copa_history_complete() {
     fi
 }
 
-# Append to existing completers without clobbering user config
+# Append to existing completers without clobbering user config.
+# _copa_suggestion_complete runs first so menu-complete highlights
+# the Copa suggestion; _copa_history_complete runs last for history matches.
 () {
     local -a cur
     zstyle -g cur ':completion:*' completer 2>/dev/null
     if (( ! ${cur[(Ie)_copa_history_complete]} )); then
-        zstyle ':completion:*' completer ${cur:-_complete} _copa_history_complete
+        zstyle ':completion:*' completer _copa_suggestion_complete ${cur:-_complete} _copa_history_complete
     fi
     # Enable group separation so Copa results appear as a distinct section
     zstyle ':completion:*' group-name ''

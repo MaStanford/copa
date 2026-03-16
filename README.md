@@ -255,8 +255,8 @@ $ git pu█sh origin main     ← grey ghost text
 |-----|-------------------|---------------|
 | Type chars | Insert char, re-fetch suggestion | Insert char, fetch suggestion |
 | Backspace | Delete char, **latch** (suppress suggestions) | Delete char normally |
-| **Tab** | `tab_accept=1`: accept full suggestion. `tab_accept=2` (default): first Tab highlights suggestion (cyan), second Tab accepts | If latched: unlatch + re-fetch suggestion. Else: normal tab completion |
-| **Down** | Highlight suggestion (enter confirming state) | History navigation |
+| **Tab** | `tab_accept=1`: accept full suggestion. `tab_accept=2` (default): open completion menu with suggestion highlighted at top, native completions below | If latched: unlatch + re-fetch suggestion. Else: normal tab completion |
+| **Down** | Open completion menu with suggestion highlighted at top | History navigation |
 | **Right arrow** | Accept one word, re-fetch | Move cursor right |
 | Enter | Clear suggestion, execute | Execute |
 | Esc | Dismiss suggestion | Normal Esc |

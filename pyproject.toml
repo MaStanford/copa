@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "copa-cli"
-version = "0.7.0"
+version = "0.7.1"
 description = "Command Palette — smart command tracking, ranking, and sharing for your shell"
 readme = "README.md"
 license = "MIT"

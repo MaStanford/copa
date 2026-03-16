@@ -1011,33 +1011,31 @@ class TestTabAcceptZsh:
         after_latch = func_block[latch_idx:]
         assert "_copa_suggest_fetch" in after_latch
 
-    def test_packaged_zsh_history_complete_hoists_suggestion(self):
+    def test_packaged_zsh_suggestion_completer_exists(self):
         content = self._read_zsh("copa/copa.zsh")
-        start = content.index("_copa_history_complete()")
-        func_block = content[start : start + 800]
+        start = content.index("_copa_suggestion_complete()")
+        func_block = content[start : start + 500]
         assert "_COPA_SUGGEST_PENDING" in func_block
         assert "compadd -U -Q -V 'copa-suggestion'" in func_block
+        assert "compstate[list]='list force'" in func_block
 
-    def test_root_zsh_history_complete_hoists_suggestion(self):
+    def test_root_zsh_suggestion_completer_exists(self):
         content = self._read_zsh("copa.zsh")
-        start = content.index("_copa_history_complete()")
-        func_block = content[start : start + 800]
+        start = content.index("_copa_suggestion_complete()")
+        func_block = content[start : start + 500]
         assert "_COPA_SUGGEST_PENDING" in func_block
         assert "compadd -U -Q -V 'copa-suggestion'" in func_block
+        assert "compstate[list]='list force'" in func_block
 
-    def test_packaged_zsh_forces_completion_list(self):
-        """compstate[list] forces the completion list to display."""
+    def test_packaged_zsh_suggestion_completer_runs_first(self):
+        """_copa_suggestion_complete must be before _complete in completer chain."""
         content = self._read_zsh("copa/copa.zsh")
-        start = content.index("_copa_history_complete()")
-        func_block = content[start : start + 800]
-        assert "compstate[list]='list force'" in func_block
+        assert "_copa_suggestion_complete ${cur:-_complete} _copa_history_complete" in content
 
-    def test_root_zsh_forces_completion_list(self):
-        """compstate[list] forces the completion list to display."""
+    def test_root_zsh_suggestion_completer_runs_first(self):
+        """_copa_suggestion_complete must be before _complete in completer chain."""
         content = self._read_zsh("copa.zsh")
-        start = content.index("_copa_history_complete()")
-        func_block = content[start : start + 800]
-        assert "compstate[list]='list force'" in func_block
+        assert "_copa_suggestion_complete ${cur:-_complete} _copa_history_complete" in content
 
     def test_packaged_zsh_has_suggestion_branding(self):
         content = self._read_zsh("copa/copa.zsh")
