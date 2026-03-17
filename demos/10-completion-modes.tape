@@ -15,8 +15,11 @@ Set Padding 20
 Set Theme "Catppuccin Mocha"
 Set TypingSpeed 60ms
 
-# Load copa shell integration
+# Load copa with hybrid mode (default)
 Hide
+Type "mkdir -p ~/.copa"
+Enter
+Sleep 500ms
 Type 'eval "$(copa init zsh)"'
 Enter
 Sleep 1s
@@ -25,14 +28,9 @@ Show
 
 # --- HYBRID mode (default) ---
 # Copa completions shown alongside native completions
-Type "# Mode: hybrid (default) -- Copa + native side by side"
+Type "# hybrid mode (default): Copa + native side by side"
 Enter
 Sleep 1s
-
-# Show current config
-Type "cat ~/.copa/config.toml"
-Enter
-Sleep 1.5s
 
 Type "git "
 Sleep 500ms
@@ -54,28 +52,23 @@ Sleep 1s
 Ctrl+C
 Sleep 500ms
 
-# --- FALLBACK mode ---
-# Copa only appears when native completions find nothing
-Type "# Mode: fallback -- Copa fills in when native has nothing"
+# --- Switch to FALLBACK mode ---
+Hide
+Type "printf '[completion]\nmode = \"fallback\"\n' > ~/.copa/config.toml"
+Enter
+Sleep 500ms
+Type 'eval "$(copa init zsh)"'
+Enter
+Sleep 1s
+Show
+
+Type "# fallback mode: Copa only when native has nothing"
 Enter
 Sleep 1s
 
-# Edit config to switch mode
-Type "echo '[completion]' > ~/.copa/config.toml && echo 'mode = "
-Type 'fallback"'
-Type "' >> ~/.copa/config.toml"
-Enter
+Type "git "
 Sleep 500ms
 
-# Reload shell to pick up new config
-Type "exec zsh"
-Enter
-Sleep 1.5s
-
-Type "adb "
-Sleep 500ms
-
-# Tab -- native completions first; Copa only if nothing matches
 Tab
 Sleep 2s
 
@@ -84,25 +77,23 @@ Sleep 1s
 Ctrl+C
 Sleep 500ms
 
-# --- ALWAYS mode ---
-# Copa completions replace native completions entirely
-Type "# Mode: always -- Copa replaces native completions"
-Enter
-Sleep 1s
-
-Type "echo '[completion]' > ~/.copa/config.toml && echo 'mode = "
-Type 'always"'
-Type "' >> ~/.copa/config.toml"
+# --- Switch to ALWAYS mode ---
+Hide
+Type "printf '[completion]\nmode = \"always\"\n' > ~/.copa/config.toml"
 Enter
 Sleep 500ms
-Type "exec zsh"
+Type 'eval "$(copa init zsh)"'
 Enter
-Sleep 1.5s
+Sleep 1s
+Show
+
+Type "# always mode: Copa replaces native completions"
+Enter
+Sleep 1s
 
 Type "git "
 Sleep 500ms
 
-# Tab -- only Copa history matches, no native completions
 Tab
 Sleep 2s
 
@@ -112,16 +103,16 @@ Ctrl+C
 Sleep 500ms
 
 # Reset to hybrid
-Type "echo '[completion]' > ~/.copa/config.toml && echo 'mode = "
-Type 'hybrid"'
-Type "' >> ~/.copa/config.toml"
+Hide
+Type "printf '[completion]\nmode = \"hybrid\"\n' > ~/.copa/config.toml"
 Enter
 Sleep 500ms
-Type "exec zsh"
+Type 'eval "$(copa init zsh)"'
 Enter
-Sleep 1.5s
+Sleep 1s
+Show
 
-Type "# Mode: never -- disables Copa tab completion entirely"
+Type "# never mode: disables Copa tab completion entirely"
 Enter
 Sleep 1s
 Type "# Set mode = 'never' in ~/.copa/config.toml"
