@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 import time
 from pathlib import Path
 
 from .models import Command, SharedSet
 
-DEFAULT_DB_PATH = Path.home() / ".copa" / "copa.db"
+DEFAULT_DB_PATH = Path(os.environ.get("COPA_DB", Path.home() / ".copa" / "copa.db"))
 
 SCHEMA_SQL = """\
 CREATE TABLE IF NOT EXISTS commands (
