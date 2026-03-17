@@ -15,17 +15,17 @@ Set Padding 20
 Set Theme "Catppuccin Mocha"
 Set TypingSpeed 80ms
 
-# Load copa shell integration, seed commands, ensure tab_accept=2
+# Load copa, ensure tab_accept=2 (default), seed commands
 Hide
+Type "mkdir -p ~/.copa"
+Enter
+Sleep 500ms
+Type "printf '[suggest]\ntab_accept = 2\n' > ~/.copa/config.toml"
+Enter
+Sleep 500ms
 Type 'eval "$(copa init zsh)"'
 Enter
 Sleep 1s
-Type "copa config set suggest.tab_accept 2"
-Enter
-Sleep 500ms
-Type 'eval "$(copa init zsh)"'
-Enter
-Sleep 500ms
 Type "copa _record 'git push origin main --force-with-lease'"
 Enter
 Sleep 500ms

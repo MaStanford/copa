@@ -15,17 +15,17 @@ Set Padding 20
 Set Theme "Catppuccin Mocha"
 Set TypingSpeed 80ms
 
-# Load copa shell integration, seed commands, set tab_accept=1
+# Load copa, set tab_accept=1 via config file, seed commands
 Hide
+Type "mkdir -p ~/.copa"
+Enter
+Sleep 500ms
+Type "printf '[suggest]\ntab_accept = 1\n' > ~/.copa/config.toml"
+Enter
+Sleep 500ms
 Type 'eval "$(copa init zsh)"'
 Enter
 Sleep 1s
-Type "copa config set suggest.tab_accept 1"
-Enter
-Sleep 500ms
-Type 'eval "$(copa init zsh)"'
-Enter
-Sleep 500ms
 Type "copa _record 'git push origin main --force-with-lease'"
 Enter
 Sleep 500ms
@@ -78,7 +78,7 @@ Type "ct"
 Sleep 1s
 Sleep 1s
 
-# Cmd+Right accepts the entire suggestion at once
+# Ctrl+E accepts the entire suggestion at once
 Ctrl+E
 Sleep 1.5s
 
