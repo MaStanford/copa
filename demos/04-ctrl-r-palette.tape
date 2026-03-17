@@ -1,7 +1,7 @@
 # Copa Ctrl+R — fzf Command Palette
 # Shows: opening palette, fuzzy search, modes, composition keys
 
-Output demos/04-ctrl-r-palette.gif
+Output 04-ctrl-r-palette.gif
 
 Require copa
 Require fzf
@@ -13,6 +13,14 @@ Set Height 600
 Set Padding 20
 Set Theme "Catppuccin Mocha"
 Set TypingSpeed 60ms
+
+# Load copa shell integration
+Hide
+Type 'eval "$(copa init zsh)"'
+Enter
+Sleep 1s
+Show
+
 
 # Open the command palette
 Ctrl+R

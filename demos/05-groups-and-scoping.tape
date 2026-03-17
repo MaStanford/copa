@@ -1,7 +1,7 @@
 # Copa Groups — Organize, assign, filter, and cycle
 # Shows: Ctrl+G assign, Ctrl+S scope, Ctrl+N cycle
 
-Output demos/05-groups-and-scoping.gif
+Output 05-groups-and-scoping.gif
 
 Require copa
 Require fzf
@@ -13,6 +13,14 @@ Set Height 600
 Set Padding 20
 Set Theme "Catppuccin Mocha"
 Set TypingSpeed 60ms
+
+# Load copa shell integration
+Hide
+Type 'eval "$(copa init zsh)"'
+Enter
+Sleep 1s
+Show
+
 
 # First, add some commands with groups via CLI
 Type 'copa add "adb devices" -d "List connected devices" -g android'

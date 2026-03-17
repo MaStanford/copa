@@ -1,7 +1,7 @@
 # Copa Sharing — Load, create, and share .copa files
 # Shows: loading example sets, creating from groups, sharing workflow
 
-Output demos/07-sharing.gif
+Output 07-sharing.gif
 
 Require copa
 Require fzf
@@ -13,6 +13,14 @@ Set Height 500
 Set Padding 20
 Set Theme "Catppuccin Mocha"
 Set TypingSpeed 50ms
+
+# Load copa shell integration
+Hide
+Type 'eval "$(copa init zsh)"'
+Enter
+Sleep 1s
+Show
+
 
 # Load an example .copa file
 Type "copa share load examples/git.copa"

@@ -1,7 +1,7 @@
-# Copa Bulk Operations — Select mode with batch actions
-# Shows: Ctrl+B, multi-select, batch group assign
+# Copa Bulk Operations — Select, group, and export
+# Shows: Ctrl+B select mode, multi-select, batch group assign, export as .copa file
 
-Output demos/06-bulk-operations.gif
+Output 06-bulk-operations.gif
 
 Require copa
 Require fzf
@@ -14,11 +14,19 @@ Set Padding 20
 Set Theme "Catppuccin Mocha"
 Set TypingSpeed 60ms
 
+# Load copa shell integration
+Hide
+Type 'eval "$(copa init zsh)"'
+Enter
+Sleep 1s
+Show
+
+
 # Open palette
 Ctrl+R
 Sleep 1.5s
 
-# Enter select mode
+# Enter select mode with Ctrl+B
 Ctrl+B
 Sleep 1.5s
 
@@ -47,7 +55,7 @@ Type "my-project"
 Enter
 Sleep 2s
 
-# Verify — open palette and scope to the group
+# Verify — open palette and cycle to the group
 Ctrl+R
 Sleep 1s
 Ctrl+N
@@ -58,3 +66,18 @@ Sleep 2s
 
 Escape
 Sleep 1s
+
+# Now export the group as a shareable .copa file
+Type "copa create -g my-project"
+Enter
+Sleep 2s
+
+# Show the generated file
+Type "cat my-project.copa | head -20"
+Enter
+Sleep 3s
+
+# Share it
+Type "# Share: copa share load my-project.copa"
+Enter
+Sleep 2s

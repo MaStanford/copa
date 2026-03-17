@@ -1,7 +1,7 @@
 # Copa Flags & Describe — Document commands with metadata
 # Shows: adding flags, viewing flags in preview pane
 
-Output demos/09-flags-and-describe.gif
+Output 09-flags-and-describe.gif
 
 Require copa
 Require fzf
@@ -13,6 +13,14 @@ Set Height 500
 Set Padding 20
 Set Theme "Catppuccin Mocha"
 Set TypingSpeed 50ms
+
+# Load copa shell integration
+Hide
+Type 'eval "$(copa init zsh)"'
+Enter
+Sleep 1s
+Show
+
 
 # Add a command with flags via CLI
 Type 'copa add "rsync -avz" -d "Sync files" -f "-a: Archive mode" -f "-v: Verbose" -f "-z: Compress"'

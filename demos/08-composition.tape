@@ -1,7 +1,7 @@
 # Copa Composition — Chain commands with operators
 # Shows: pipe (|), chain (&&), background (&), redirect (>)
 
-Output demos/08-composition.gif
+Output 08-composition.gif
 
 Require copa
 Require fzf
@@ -13,6 +13,14 @@ Set Height 600
 Set Padding 20
 Set Theme "Catppuccin Mocha"
 Set TypingSpeed 60ms
+
+# Load copa shell integration
+Hide
+Type 'eval "$(copa init zsh)"'
+Enter
+Sleep 1s
+Show
+
 
 # Open palette
 Ctrl+R

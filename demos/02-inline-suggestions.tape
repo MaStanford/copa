@@ -1,7 +1,8 @@
 # Copa Inline Suggestions — Ghost text as you type
-# Shows: ghost text appearing, Tab accept, right-arrow word accept, backspace latch
+# Shows: ghost text appearing, Tab accept (mode 1), right-arrow word accept,
+#        Cmd+Right full accept, backspace latch
 
-Output demos/02-inline-suggestions.gif
+Output 02-inline-suggestions.gif
 
 Require copa
 Require fzf
@@ -13,6 +14,14 @@ Set Height 400
 Set Padding 20
 Set Theme "Catppuccin Mocha"
 Set TypingSpeed 80ms
+
+# Load copa shell integration
+Hide
+Type 'eval "$(copa init zsh)"'
+Enter
+Sleep 1s
+Show
+
 
 # Start typing — ghost text appears
 Type "git "
@@ -42,6 +51,22 @@ Sleep 800ms
 Right
 Sleep 800ms
 Right
+Sleep 1.5s
+
+# Clear and show Cmd+Right (Ctrl+E) — accept full suggestion in one keystroke
+Ctrl+C
+Sleep 500ms
+
+Type "adb "
+Sleep 800ms
+Type "sh"
+Sleep 1s
+
+# Show ghost text
+Sleep 1s
+
+# Cmd+Right accepts the entire suggestion at once
+Ctrl+E
 Sleep 1.5s
 
 # Clear and show backspace latch

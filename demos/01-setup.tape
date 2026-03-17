@@ -1,7 +1,7 @@
 # Copa Setup — Installation and first look
 # Shows: install, doctor check, quick command list
 
-Output demos/01-setup.gif
+Output 01-setup.gif
 
 Require copa
 Require fzf
@@ -13,6 +13,14 @@ Set Height 500
 Set Padding 20
 Set Theme "Catppuccin Mocha"
 Set TypingSpeed 50ms
+
+# Load copa shell integration
+Hide
+Type 'eval "$(copa init zsh)"'
+Enter
+Sleep 1s
+Show
+
 
 # Install Copa
 Type "pip install copa-cli"
