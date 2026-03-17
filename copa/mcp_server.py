@@ -198,7 +198,7 @@ def create_mcp_server():
 
         The file_path should be a path to a .copa JSON file.
         """
-        from .sharing import load_copa_file, import_shared_set, resolve_copa_path
+        from .sharing import import_shared_set, load_copa_file, resolve_copa_path
 
         resolved = resolve_copa_path(file_path)
         if not resolved or not resolved.is_file():
