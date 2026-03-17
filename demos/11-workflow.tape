@@ -1,7 +1,7 @@
 # Copa Workflow — End-to-end: load shared set, use commands, organize, export
 # Shows: the real value of Copa when working with shared command knowledge
 
-Output 11-workflow.gif
+Output "11-workflow.gif"
 
 Require copa
 Require fzf

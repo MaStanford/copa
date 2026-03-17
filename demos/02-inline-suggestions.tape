@@ -2,7 +2,7 @@
 # Shows: ghost text appearing, Tab accept (mode 1), right-arrow word accept,
 #        Cmd+Right full accept, backspace latch
 
-Output 02-inline-suggestions.gif
+Output "02-inline-suggestions.gif"
 
 Require copa
 Require fzf

@@ -1,7 +1,7 @@
 # Copa Sharing — Load, create, and share .copa files
 # Shows: loading example sets, creating from groups, sharing workflow
 
-Output 07-sharing.gif
+Output "07-sharing.gif"
 
 Require copa
 Require fzf

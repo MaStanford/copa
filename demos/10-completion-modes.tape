@@ -2,7 +2,7 @@
 # Shows: how Copa completions mix with native completions in each mode
 # Mode is set in ~/.copa/config.toml under [completion] mode = "..."
 
-Output 10-completion-modes.gif
+Output "10-completion-modes.gif"
 
 Require copa
 Require fzf

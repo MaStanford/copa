@@ -1,7 +1,7 @@
 # Copa Groups — Organize, assign, filter, and cycle
 # Shows: Ctrl+G assign, Ctrl+S scope, Ctrl+N cycle
 
-Output 05-groups-and-scoping.gif
+Output "05-groups-and-scoping.gif"
 
 Require copa
 Require fzf

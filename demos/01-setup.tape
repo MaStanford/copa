@@ -1,7 +1,7 @@
 # Copa Setup — Installation and first look
 # Shows: install, doctor check, quick command list
 
-Output 01-setup.gif
+Output "01-setup.gif"
 
 Require copa
 Require fzf

@@ -1,7 +1,7 @@
 # Copa Composition — Chain commands with operators
 # Shows: pipe (|), chain (&&), background (&), redirect (>)
 
-Output 08-composition.gif
+Output "08-composition.gif"
 
 Require copa
 Require fzf

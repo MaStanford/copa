@@ -1,7 +1,7 @@
 # Copa Ctrl+R — fzf Command Palette
 # Shows: opening palette, fuzzy search, modes, composition keys
 
-Output 04-ctrl-r-palette.gif
+Output "04-ctrl-r-palette.gif"
 
 Require copa
 Require fzf

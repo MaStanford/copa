@@ -2,7 +2,7 @@
 # Shows: ghost text -> Tab opens menu -> suggestion highlighted -> navigate -> accept
 #        Down arrow opens menu, Cmd+Right accepts full suggestion without menu
 
-Output 03-tab-menu-select.gif
+Output "03-tab-menu-select.gif"
 
 Require copa
 Require fzf

@@ -1,7 +1,7 @@
 # Copa Bulk Operations — Select, group, and export
 # Shows: Ctrl+B select mode, multi-select, batch group assign, export as .copa file
 
-Output 06-bulk-operations.gif
+Output "06-bulk-operations.gif"
 
 Require copa
 Require fzf

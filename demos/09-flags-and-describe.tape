@@ -1,7 +1,7 @@
 # Copa Flags & Describe — Document commands with metadata
 # Shows: adding flags, viewing flags in preview pane
 
-Output 09-flags-and-describe.gif
+Output "09-flags-and-describe.gif"
 
 Require copa
 Require fzf
