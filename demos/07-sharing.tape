@@ -14,11 +14,14 @@ Set Padding 20
 Set Theme "Catppuccin Mocha"
 Set TypingSpeed 50ms
 
-# Load copa shell integration
+# Load copa shell integration and cd to repo root
 Hide
 Type 'eval "$(copa init zsh)"'
 Enter
 Sleep 1s
+Type "cd .."
+Enter
+Sleep 500ms
 Show
 
 
