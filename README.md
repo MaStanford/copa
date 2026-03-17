@@ -6,6 +6,8 @@
 
 Copa tracks the commands you run, ranks them by frequency and recency, and gives you instant fuzzy search via fzf. Think of it as a smart, searchable, shareable upgrade to shell history.
 
+![Copa Setup](demos/01-setup.gif)
+
 ## Features
 
 - **Smart ranking** — commands scored by `2*log(1+freq) + 8*0.5^(age/3d)`, so frequent *and* recent commands float to the top
@@ -104,6 +106,8 @@ copa sync
 
 Once shell integration is sourced, pressing **Ctrl+R** opens an fzf-powered command palette instead of the default zsh reverse search. This is Copa's primary interface.
 
+![Ctrl+R Palette](demos/04-ctrl-r-palette.gif)
+
 ### What you see
 
 Copa pipes every tracked command into fzf with aligned columns:
@@ -143,6 +147,8 @@ While the fzf palette is open, these keys are available:
 | **Ctrl+/** | Append `2>/dev/null` | Suppress stderr |
 | **Ctrl+S** | Scope by group | Opens inline group list — Enter filters to that group, ESC returns to all |
 | **Ctrl+G** | Assign group | Opens inline group list — Enter assigns the group to the highlighted command |
+
+![Groups and Scoping](demos/05-groups-and-scoping.gif)
 | **Ctrl+N** | Cycle group | Cycles through groups: (all) → group1 → group2 → ... → (all) |
 | **Ctrl+D** | Describe | Generate/edit a description using LLM (with tty-aware input) |
 | **Ctrl+F** | Edit flags | Add flag documentation to the highlighted command |
@@ -153,6 +159,8 @@ While the fzf palette is open, these keys are available:
 Keybindings are configurable via `~/.copa/config.toml`. See [Configuration](#configuration).
 
 ### Select mode (bulk operations)
+
+![Bulk Operations](demos/06-bulk-operations.gif)
 
 Press **Ctrl+B** from the Ctrl+R palette to enter **select mode**. This opens a new fzf view with multi-select enabled:
 
@@ -190,9 +198,13 @@ Selecting a command places it directly into your shell prompt (without executing
 
 ## Tab Completion
 
+![Tab Menu Select](demos/03-tab-menu-select.gif)
+
 Copa supplements zsh's built-in tab completion for **any** command — not just Copa's own CLI. Once `copa.zsh` is sourced, Copa registers as a completer in zsh's completion system.
 
 ### Completion modes
+
+![Completion Modes](demos/10-completion-modes.gif)
 
 Copa supports four completion modes, configured via `~/.copa/config.toml`:
 
@@ -238,6 +250,10 @@ This works automatically once `copa.zsh` is sourced — no extra setup needed. T
 Copa's own CLI completions (`copa li<TAB>` → `list`) continue to work as before via Click's built-in completion.
 
 ## Inline Suggestions (Ghost Text)
+
+| Tab Mode 1 (direct accept) | Tab Mode 2 (menu select, default) |
+|---|---|
+| ![Tab Mode 1](demos/02a-suggestions-tab-mode1.gif) | ![Tab Mode 2](demos/02b-suggestions-tab-mode2.gif) |
 
 Copa shows grey ghost text after your cursor as you type — the best matching command from your database, ranked by frequency and recency. This works like fish shell's autosuggestions or zsh-autosuggestions, with zero plugin dependencies.
 
@@ -412,6 +428,8 @@ copa describe 42
 
 Generates a description for a specific command by ID. Same accept/edit flow as `fix --auto`.
 
+![Flags and Describe](demos/09-flags-and-describe.gif)
+
 ## Script Metadata Protocol
 
 Copa recognizes `#@` headers in script files (checked in the first 50 lines):
@@ -458,6 +476,8 @@ copa scan --dir ~/bin   # scan a specific directory
 ```
 
 ## Sharing
+
+![Sharing](demos/07-sharing.gif)
 
 Export a group as a `.copa` file:
 
@@ -593,8 +613,16 @@ Available MCP tools:
 - `copa_get_stats` — usage statistics
 - `copa_add_command` — add a command
 - `copa_update_description` — update a description
+- `copa_delete_command` — delete a command by ID
+- `copa_set_group` — set or change a command's group
+- `copa_update_flags` — update flag documentation for a command
+- `copa_pin_command` — pin or unpin a command
 - `copa_create_group` — create a group with commands
 - `copa_bulk_add` — bulk add commands
+- `copa_share_load` — load a .copa file as a shared set
+- `copa_share_list` — list all loaded shared sets
+- `copa_share_remove` — remove a shared set
+- `copa_export_group` — export a group as a .copa file
 
 ## Configuration
 
@@ -642,6 +670,8 @@ continue = ["pipe", "chain", "redirect"]  # default: |, &&, > re-open fzf
 
 ### Composition key behavior
 
+![Composition](demos/08-composition.gif)
+
 When you press a composition key (like Ctrl-A for `&&`), Copa can either **close fzf** (placing the command + operator in your prompt) or **continue** (appending the operator and re-opening fzf so you can select the next command to chain).
 
 By default, "connector" operators re-open fzf:
@@ -662,6 +692,10 @@ To revert to the old behavior (all keys close immediately), set:
 [composition]
 continue = []
 ```
+
+## End-to-End Workflow
+
+![Workflow](demos/11-workflow.gif)
 
 ## CLI Reference
 
