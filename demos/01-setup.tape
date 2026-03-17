@@ -1,5 +1,5 @@
 # Copa Setup — Getting started
-# Shows: version check, doctor, shell integration, first suggestion
+# Shows: install command, version check, doctor, shell integration
 
 Output "01-setup.gif"
 
@@ -12,6 +12,12 @@ Set Height 500
 Set Padding 20
 Set Theme "Catppuccin Mocha"
 Set TypingSpeed 50ms
+
+# Show the install command (but don't run it — already installed)
+Type "pip install copa-cli"
+Sleep 2s
+Ctrl+C
+Sleep 500ms
 
 # Check installation
 Type "copa --version"
