@@ -15,11 +15,20 @@ Set Padding 20
 Set Theme "Catppuccin Mocha"
 Set TypingSpeed 80ms
 
-# Load copa shell integration
+# Load copa shell integration and seed commands for predictable suggestions
 Hide
 Type 'eval "$(copa init zsh)"'
 Enter
 Sleep 1s
+Type "copa _record 'git push origin main --force-with-lease'"
+Enter
+Sleep 500ms
+Type "copa _record 'docker compose up -d --build'"
+Enter
+Sleep 500ms
+Type "copa _record 'kubectl get pods -n production'"
+Enter
+Sleep 500ms
 Show
 
 
@@ -57,9 +66,9 @@ Sleep 1.5s
 Ctrl+C
 Sleep 500ms
 
-Type "adb "
+Type "kube"
 Sleep 800ms
-Type "sh"
+Type "ct"
 Sleep 1s
 
 # Show ghost text
@@ -73,7 +82,7 @@ Sleep 1.5s
 Ctrl+C
 Sleep 500ms
 
-Type "adb sh"
+Type "kube"
 Sleep 1s
 
 # Show ghost text
@@ -86,9 +95,9 @@ Backspace
 Sleep 500ms
 
 # Type again — suggestion comes back
-Type "el"
+Type "be"
 Sleep 1s
-Type "l"
+Type "ct"
 Sleep 1.5s
 
 # Accept
