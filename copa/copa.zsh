@@ -49,7 +49,7 @@ _copa_precmd() {
   last_cmd="$(fc -ln -1 2>/dev/null)"
   last_cmd="${last_cmd## }"  # strip leading space
   if [[ -n "$last_cmd" && "$last_cmd" != _copa_* ]]; then
-    copa _record "$last_cmd" &!
+    copa _record "$last_cmd" &! 2>/dev/null
   fi
 }
 
@@ -280,7 +280,7 @@ bindkey '^R' _copa_fzf_widget
 if ! (( $+functions[compdef] )); then
   autoload -Uz compinit && compinit -i -C
 fi
-eval "$(copa completion zsh)"
+eval "$(copa completion zsh 2>/dev/null)"
 
 # --- Supplemental tab completion from Copa database ---
 # Mode is controlled by _COPA_COMPLETION_MODE (set via copa _fzf-config):
@@ -349,11 +349,13 @@ _copa_history_complete() {
     # Interactive menu with highlighting; Tab accepts the focused item
     zstyle ':completion:*' menu select
     zmodload zsh/complist 2>/dev/null
-    bindkey -M menuselect '^I' .accept-line
+    bindkey -M menuselect '^I' accept-search
+    bindkey -M menuselect '^M' accept-search
+    bindkey -M menuselect '^J' accept-search
     # Escape cancels the menu and restores the original buffer
     bindkey -M menuselect '^[' send-break
     # Space accepts the focused completion and closes the menu
-    bindkey -M menuselect ' ' .accept-line
+    bindkey -M menuselect ' ' accept-search
     # Raise threshold before "show all N?" prompt
     LISTMAX=200
     # Copa completion branding: show group description headers
