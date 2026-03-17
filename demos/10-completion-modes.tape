@@ -17,6 +17,9 @@ Set TypingSpeed 60ms
 
 # Load copa with hybrid mode (default)
 Hide
+Type "setopt INTERACTIVE_COMMENTS"
+Enter
+Sleep 500ms
 Type "mkdir -p ~/.copa"
 Enter
 Sleep 500ms

@@ -16,6 +16,9 @@ Set TypingSpeed 60ms
 
 # Load copa shell integration
 Hide
+Type "setopt INTERACTIVE_COMMENTS"
+Enter
+Sleep 500ms
 Type 'eval "$(copa init zsh)"'
 Enter
 Sleep 1s
