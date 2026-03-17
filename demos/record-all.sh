@@ -12,11 +12,15 @@ cd "$(dirname "$0")"
 COPA_ROOT="$(cd .. && pwd)"
 
 # --- Isolated demo environment ---
-DEMO_COPA_DIR="$(mktemp -d)/copa-demo"
-mkdir -p "$DEMO_COPA_DIR"
-export COPA_DB="$DEMO_COPA_DIR/copa.db"
+# Use a fake HOME so ~/.copa/copa.db is always empty/isolated.
+# This works with both old (PyPI) and new (COPA_DB) versions.
+DEMO_HOME="$(mktemp -d)"
+mkdir -p "$DEMO_HOME"
+export HOME="$DEMO_HOME"
+export COPA_DB="$DEMO_HOME/.copa/copa.db"
 
 echo "=== Copa Demo Recorder ==="
+echo "Using isolated HOME: $DEMO_HOME"
 echo "Using isolated database: $COPA_DB"
 
 # --- Step 1: Uninstall copa for tape 01 (install demo) ---
@@ -115,7 +119,7 @@ for tape in "${tapes[@]}"; do
 done
 
 # --- Cleanup ---
-rm -rf "$(dirname "$DEMO_COPA_DIR")"
+rm -rf "$DEMO_HOME"
 
 echo "=== Complete ==="
 echo "  Recorded: $((done_count + 1 - failed))/$((total + 1))"

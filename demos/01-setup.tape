@@ -1,5 +1,5 @@
 # Copa Setup — Installation and first look
-# Shows: install, doctor check, shell integration
+# Shows: install, version check, doctor
 
 Output "01-setup.gif"
 
@@ -26,23 +26,12 @@ Type "copa doctor"
 Enter
 Sleep 3s
 
-# Add shell integration
-Type "# Add to your .zshrc:"
-Enter
-Sleep 500ms
-Type 'echo '"'"'eval "$(copa init zsh)"'"'"' >> ~/.zshrc'
-Enter
-Sleep 1s
-
-# Load it now
+# Load shell integration
 Type 'eval "$(copa init zsh)"'
 Enter
 Sleep 2s
 
-# Show it works — type something and see suggestion
-Type "copa "
-Sleep 1s
-Type "li"
-Sleep 1.5s
-Tab
-Sleep 2s
+# Show it works
+Type "copa list"
+Enter
+Sleep 3s
