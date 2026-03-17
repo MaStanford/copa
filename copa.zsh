@@ -351,7 +351,7 @@ _copa_history_complete() {
     local -a cur
     zstyle -g cur ':completion:*' completer 2>/dev/null
     if (( ! ${cur[(Ie)_copa_history_complete]} )); then
-        zstyle ':completion:*' completer _copa_suggestion_complete ${cur:-_complete} _copa_history_complete
+        zstyle ':completion:*' completer _copa_suggestion_complete ${cur:-_complete} _copa_history_complete _files
     fi
     # Enable group separation so Copa results appear as a distinct section
     zstyle ':completion:*' group-name ''

@@ -1,0 +1,13 @@
+{
+  "copa_version": "1.0",
+  "name": "my-project",
+  "description": "Commands for 'my-project'",
+  "author": "",
+  "commands": [
+    {
+      "command": "echo hello",
+      "description": "Example command \u2014 replace me",
+      "tags": []
+    }
+  ]
+}

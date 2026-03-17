@@ -1,0 +1,23 @@
+{
+  "copa_version": "1.0",
+  "name": "android",
+  "description": "Commands from group 'android'",
+  "author": "",
+  "commands": [
+    {
+      "command": "adb shell",
+      "description": "Open device shell",
+      "tags": []
+    },
+    {
+      "command": "adb devices",
+      "description": "List connected devices",
+      "tags": []
+    },
+    {
+      "command": "adb logcat",
+      "description": "Stream device logs",
+      "tags": []
+    }
+  ]
+}

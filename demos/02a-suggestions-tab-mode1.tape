@@ -1,8 +1,8 @@
-# Copa Inline Suggestions — Ghost text as you type
-# Shows: ghost text appearing, Tab accept (mode 1), right-arrow word accept,
-#        Cmd+Right full accept, backspace latch
+# Copa Inline Suggestions — Tab Mode 1 (direct accept)
+# Shows: ghost text appearing, Tab directly accepts suggestion, right-arrow
+#        word accept, Cmd+Right full accept, backspace latch
 
-Output "02-inline-suggestions.gif"
+Output "02a-suggestions-tab-mode1.gif"
 
 Require copa
 Require fzf
@@ -15,11 +15,17 @@ Set Padding 20
 Set Theme "Catppuccin Mocha"
 Set TypingSpeed 80ms
 
-# Load copa shell integration and seed commands for predictable suggestions
+# Load copa shell integration, seed commands, set tab_accept=1
 Hide
 Type 'eval "$(copa init zsh)"'
 Enter
 Sleep 1s
+Type "copa config set suggest.tab_accept 1"
+Enter
+Sleep 500ms
+Type 'eval "$(copa init zsh)"'
+Enter
+Sleep 500ms
 Type "copa _record 'git push origin main --force-with-lease'"
 Enter
 Sleep 500ms
@@ -41,7 +47,7 @@ Sleep 1s
 # Pause to show ghost text
 Sleep 1.5s
 
-# Tab accepts the full suggestion (tab_accept=1 mode)
+# Tab directly accepts the full suggestion (mode 1)
 Tab
 Sleep 1.5s
 
@@ -62,7 +68,7 @@ Sleep 800ms
 Right
 Sleep 1.5s
 
-# Clear and show Cmd+Right (Ctrl+E) — accept full suggestion in one keystroke
+# Clear and show Cmd+Right (Ctrl+E) — accept full suggestion
 Ctrl+C
 Sleep 500ms
 
@@ -70,8 +76,6 @@ Type "kube"
 Sleep 800ms
 Type "ct"
 Sleep 1s
-
-# Show ghost text
 Sleep 1s
 
 # Cmd+Right accepts the entire suggestion at once
@@ -84,8 +88,6 @@ Sleep 500ms
 
 Type "kube"
 Sleep 1s
-
-# Show ghost text
 Sleep 1s
 
 # Backspace — suggestion disappears (latched)
@@ -100,6 +102,6 @@ Sleep 1s
 Type "ct"
 Sleep 1.5s
 
-# Accept
+# Accept with Tab (mode 1 — direct accept)
 Tab
 Sleep 2s

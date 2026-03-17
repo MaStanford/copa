@@ -1,0 +1,13 @@
+{
+  "copa_version": "1.0",
+  "name": "k8s-staging",
+  "description": "Commands for 'k8s-staging'",
+  "author": "",
+  "commands": [
+    {
+      "command": "echo hello",
+      "description": "Example command \u2014 replace me",
+      "tags": []
+    }
+  ]
+}
