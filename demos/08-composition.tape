@@ -40,13 +40,12 @@ Sleep 800ms
 Enter
 Sleep 1.5s
 
-# Show the composed command in the prompt
+# Show the composed command in the prompt (don't run it)
 Sleep 2s
-
-# Clear and demo && chaining
 Ctrl+C
 Sleep 500ms
 
+# Demo && chaining
 Ctrl+R
 Sleep 1s
 Type "git pull"
@@ -56,17 +55,34 @@ Sleep 800ms
 Ctrl+A
 Sleep 1.5s
 
-Type "npm install"
+Type "npm"
 Sleep 800ms
 
 # Chain again
 Ctrl+A
 Sleep 1.5s
 
-Type "npm run build"
+Type "pytest"
 Sleep 800ms
 Enter
-Sleep 2s
+Sleep 1.5s
 
-# Show the full composed command
+# Show the full composed command (don't run it)
 Sleep 2.5s
+Ctrl+C
+Sleep 500ms
+
+# Demo redirect (Ctrl+T)
+Ctrl+R
+Sleep 1s
+Type "kubectl"
+Sleep 800ms
+
+# Redirect output (Ctrl+T)
+Ctrl+T
+Sleep 1.5s
+
+# Show the command with > appended
+Sleep 2s
+Ctrl+C
+Sleep 1s
