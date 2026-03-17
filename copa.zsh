@@ -55,6 +55,7 @@ eval "$(copa _fzf-config 2>/dev/null)" || {
 
 # --- precmd hook: record last command ---
 _copa_precmd() {
+  (( $+commands[copa] )) || return
   local last_cmd
   last_cmd="$(fc -ln -1 2>/dev/null)"
   last_cmd="${last_cmd## }"  # strip leading space
