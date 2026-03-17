@@ -2,48 +2,29 @@
 # Record all Copa demo GIFs using VHS
 # Usage: ./record-all.sh
 #
-# This script uses an isolated Copa database so no real history leaks
-# into the demo GIFs. It uninstalls copa first (for tape 01 which shows
-# installation), then installs and seeds curated commands for the rest.
+# This script uses an isolated Copa database (COPA_DB) so no real
+# history leaks into the demo GIFs. Copa must be installed first.
 
 # No set -e: we handle errors per-tape
 
 cd "$(dirname "$0")"
 COPA_ROOT="$(cd .. && pwd)"
 
-# --- Isolated demo environment ---
-# Use a fake HOME so ~/.copa/copa.db is always empty/isolated.
-# This works with both old (PyPI) and new (COPA_DB) versions.
-DEMO_HOME="$(mktemp -d)"
-mkdir -p "$DEMO_HOME"
-export HOME="$DEMO_HOME"
-export COPA_DB="$DEMO_HOME/.copa/copa.db"
+# --- Ensure copa is installed ---
+if ! command -v copa &>/dev/null; then
+  echo "Copa not installed. Installing from source..."
+  pip3 install -e "$COPA_ROOT" 2>&1 | tail -3
+fi
+
+# --- Isolated demo database ---
+DEMO_DIR="$(mktemp -d)"
+export COPA_DB="$DEMO_DIR/copa.db"
 
 echo "=== Copa Demo Recorder ==="
-echo "Using isolated HOME: $DEMO_HOME"
 echo "Using isolated database: $COPA_DB"
 
-# --- Step 1: Uninstall copa for tape 01 (install demo) ---
+# --- Seed curated demo commands ---
 echo ""
-echo "--- Uninstalling copa for install demo ---"
-pip3 uninstall -y copa-cli 2>/dev/null
-echo ""
-
-# --- Step 2: Record tape 01 (shows installation) ---
-echo "[1] Recording: 01-setup"
-if vhs 01-setup.tape 2>&1; then
-  echo "  Done."
-else
-  echo "  FAILED!"
-fi
-echo ""
-
-# --- Step 3: Install copa from local source ---
-echo "--- Installing copa from source ---"
-pip3 install -e "$COPA_ROOT" 2>&1 | tail -3
-echo ""
-
-# --- Step 4: Seed curated demo commands ---
 echo "--- Seeding demo commands ---"
 copa _init 2>/dev/null
 
@@ -89,16 +70,14 @@ copa _record "tail -f /var/log/app.log"
 echo "  Seeded $(copa list 2>/dev/null | wc -l | tr -d ' ') commands"
 echo ""
 
-# --- Step 5: Record remaining tapes ---
+# --- Record all tapes ---
 tapes=(*.tape)
-# Remove 01-setup since we already recorded it
-tapes=("${(@)tapes:#01-setup.tape}")
 total=${#tapes[@]}
 done_count=0
 failed=0
 failed_names=()
 
-echo "--- Recording ${total} remaining tapes ---"
+echo "--- Recording ${total} tapes ---"
 echo ""
 
 for tape in "${tapes[@]}"; do
@@ -119,10 +98,10 @@ for tape in "${tapes[@]}"; do
 done
 
 # --- Cleanup ---
-rm -rf "$DEMO_HOME"
+rm -rf "$DEMO_DIR"
 
 echo "=== Complete ==="
-echo "  Recorded: $((done_count + 1 - failed))/$((total + 1))"
+echo "  Recorded: $((done_count - failed))/$total"
 if (( failed > 0 )); then
   echo "  Failed:   $failed (${(j: :)failed_names})"
 else

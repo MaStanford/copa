@@ -1,7 +1,9 @@
-# Copa Setup — Installation and first look
-# Shows: install, version check, doctor
+# Copa Setup — Getting started
+# Shows: version check, doctor, shell integration, first suggestion
 
 Output "01-setup.gif"
+
+Require copa
 
 Set Shell "zsh"
 Set FontSize 16
@@ -10,11 +12,6 @@ Set Height 500
 Set Padding 20
 Set Theme "Catppuccin Mocha"
 Set TypingSpeed 50ms
-
-# Install Copa
-Type "pip install copa-cli"
-Enter
-Sleep 3s
 
 # Check installation
 Type "copa --version"
@@ -31,7 +28,10 @@ Type 'eval "$(copa init zsh)"'
 Enter
 Sleep 2s
 
-# Show it works
-Type "copa list"
-Enter
-Sleep 3s
+# Show it works — type something and see suggestion
+Type "copa "
+Sleep 1s
+Type "li"
+Sleep 1.5s
+Tab
+Sleep 2s
