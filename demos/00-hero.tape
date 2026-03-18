@@ -125,8 +125,8 @@ Sleep 1s
 Ctrl+C
 Sleep 400ms
 
-# --- 4. Sharing ---
-Type "# Sharing — load .copa files from your team"
+# --- 4. Sharing & onboarding ---
+Type "# Sharing — onboard your team with .copa files"
 Enter
 Sleep 800ms
 
@@ -139,7 +139,7 @@ Enter
 Sleep 1.5s
 
 # --- 5. Export ---
-Type "# Export — create .copa files to share back"
+Type "# Export — share your knowledge back"
 Enter
 Sleep 800ms
 
@@ -147,4 +147,11 @@ Type "copa create -g git-essentials"
 Enter
 Sleep 1.5s
 
+# --- 6. Claude Code MCP ---
+Type "# Claude Code can search, create, and share commands via MCP"
+Enter
+Sleep 800ms
+
+Type "# Ask Claude: 'make a .copa file of our deploy commands'"
+Enter
 Sleep 2s
