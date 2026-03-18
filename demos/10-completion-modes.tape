@@ -57,7 +57,7 @@ Sleep 500ms
 
 # --- Switch to FALLBACK mode ---
 Hide
-Type "printf '[completion]\nmode = \"fallback\"\n' > ~/.copa/config.toml"
+Type 'echo -e "[completion]\nmode = \"fallback\"" > ~/.copa/config.toml'
 Enter
 Sleep 500ms
 Type 'eval "$(copa init zsh)"'
@@ -82,7 +82,7 @@ Sleep 500ms
 
 # --- Switch to ALWAYS mode ---
 Hide
-Type "printf '[completion]\nmode = \"always\"\n' > ~/.copa/config.toml"
+Type 'echo -e "[completion]\nmode = \"always\"" > ~/.copa/config.toml'
 Enter
 Sleep 500ms
 Type 'eval "$(copa init zsh)"'
@@ -107,7 +107,7 @@ Sleep 500ms
 
 # Reset to hybrid
 Hide
-Type "printf '[completion]\nmode = \"hybrid\"\n' > ~/.copa/config.toml"
+Type 'echo -e "[completion]\nmode = \"hybrid\"" > ~/.copa/config.toml'
 Enter
 Sleep 500ms
 Type 'eval "$(copa init zsh)"'

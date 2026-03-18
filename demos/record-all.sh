@@ -1,4 +1,4 @@
-#!/bin/zsh
+#!/bin/bash
 # Record all Copa demo GIFs using VHS
 # Usage: ./record-all.sh
 #
@@ -103,7 +103,7 @@ rm -rf "$DEMO_DIR"
 echo "=== Complete ==="
 echo "  Recorded: $((done_count - failed))/$total"
 if (( failed > 0 )); then
-  echo "  Failed:   $failed (${(j: :)failed_names})"
+  echo "  Failed:   $failed (${failed_names[*]})"
 else
   echo "  All tapes recorded successfully!"
 fi
