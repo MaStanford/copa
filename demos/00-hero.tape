@@ -22,6 +22,9 @@ Sleep 500ms
 Type "mkdir -p ~/.copa"
 Enter
 Sleep 500ms
+Type "printf '[suggest]\ntab_accept = 1\n' > ~/.copa/config.toml"
+Enter
+Sleep 500ms
 Type 'eval "$(copa init zsh)"'
 Enter
 Sleep 1s
