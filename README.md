@@ -6,14 +6,14 @@
 
 Copa tracks the commands you run, ranks them by frequency and recency, and gives you instant fuzzy search via fzf. Think of it as a smart, searchable, shareable upgrade to shell history.
 
-![Copa Setup](demos/01-setup.gif)
+![Copa Demo](demos/00-hero.gif)
 
 ## Features
 
-- **Smart ranking** — commands scored by `2*log(1+freq) + 8*0.5^(age/3d)`, so frequent *and* recent commands float to the top
+- **Smart ranking** — commands scored by `2*log(1+freq) + 8*0.5^(age/3d)`, so frequent _and_ recent commands float to the top
 - **FTS search** — full-text search across commands and their descriptions
-- **fzf integration** — Ctrl+R opens a fuzzy-searchable command palette with preview pane; searches across commands *and* their descriptions
-- **Tab completion** — Copa supplements zsh's tab completion for *any* command using your command history database
+- **fzf integration** — Ctrl+R opens a fuzzy-searchable command palette with preview pane; searches across commands _and_ their descriptions
+- **Tab completion** — Copa supplements zsh's tab completion for _any_ command using your command history database
 - **Auto-evolution** — `copa evolve` finds your most-used commands from zsh history and promotes them
 - **LLM descriptions** — `copa fix --auto` uses Claude or ollama to generate descriptions for undescribed commands
 - **Script protocol** — `#@ Description:` / `#@ Usage:` / `#@ Purpose:` / `#@ Flag:` headers in your scripts are auto-detected by `copa scan` across all `$PATH` directories
@@ -68,6 +68,7 @@ copa setup
 ```
 
 This walks you through everything:
+
 1. Checks that **fzf** is installed (tells you how to install if missing)
 2. Creates the Copa database (`~/.copa/copa.db`)
 3. Adds shell integration to your `~/.zshrc` (prompts for confirmation)
@@ -126,35 +127,38 @@ This is the key difference from plain zsh Ctrl+R: you're not just searching raw 
 
 The header shows available modes. Press **Ctrl+R** again while fzf is open to cycle:
 
-| Mode | Sort order | Use case |
-|------|-----------|----------|
-| `all` | Score (frequency + recency) | Default — best commands float to top |
-| `frequent` | Frequency only | Find your most-used commands |
-| `recent` | Last used time | Find commands you ran recently |
+| Mode       | Sort order                  | Use case                             |
+| ---------- | --------------------------- | ------------------------------------ |
+| `all`      | Score (frequency + recency) | Default — best commands float to top |
+| `frequent` | Frequency only              | Find your most-used commands         |
+| `recent`   | Last used time              | Find commands you ran recently       |
 
 ### Keybindings
 
 While the fzf palette is open, these keys are available:
 
-| Key | Action | Effect |
-|-----|--------|--------|
-| **Ctrl+R** | Cycle mode | all → frequent → recent → all |
-| **Ctrl+V** | Append `&` | Run selected command in background |
-| **Ctrl+O** | Append `2>&1` | Merge stderr into stdout |
-| **Ctrl+X** | Append `\|` | Pipe into next command |
-| **Ctrl+T** | Append `>` | Redirect output |
-| **Ctrl+A** | Append `&&` | Chain with next command |
-| **Ctrl+/** | Append `2>/dev/null` | Suppress stderr |
-| **Ctrl+S** | Scope by group | Opens inline group list — Enter filters to that group, ESC returns to all |
-| **Ctrl+G** | Assign group | Opens inline group list — Enter assigns the group to the highlighted command |
+| Key        | Action               | Effect                                                                       |
+| ---------- | -------------------- | ---------------------------------------------------------------------------- |
+| **Ctrl+R** | Cycle mode           | all → frequent → recent → all                                                |
+| **Ctrl+V** | Append `&`           | Run selected command in background                                           |
+| **Ctrl+O** | Append `2>&1`        | Merge stderr into stdout                                                     |
+| **Ctrl+X** | Append `\|`          | Pipe into next command                                                       |
+| **Ctrl+T** | Append `>`           | Redirect output                                                              |
+| **Ctrl+A** | Append `&&`          | Chain with next command                                                      |
+| **Ctrl+/** | Append `2>/dev/null` | Suppress stderr                                                              |
+| **Ctrl+S** | Scope by group       | Opens inline group list — Enter filters to that group, ESC returns to all    |
+| **Ctrl+G** | Assign group         | Opens inline group list — Enter assigns the group to the highlighted command |
 
 ![Groups and Scoping](demos/05-groups-and-scoping.gif)
-| **Ctrl+N** | Cycle group | Cycles through groups: (all) → group1 → group2 → ... → (all) |
-| **Ctrl+D** | Describe | Generate/edit a description using LLM (with tty-aware input) |
-| **Ctrl+F** | Edit flags | Add flag documentation to the highlighted command |
-| **Ctrl+B** | Select mode | Enter multi-select for bulk operations (see below) |
-| **Ctrl+H** | Toggle header | Show/hide the key hints for more screen space |
-| **ESC** | Cancel/back | In scope/group mode: returns to command list. Otherwise: closes fzf |
+
+| Key        | Action        | Effect                                                              |
+| ---------- | ------------- | ------------------------------------------------------------------- |
+| **Ctrl+N** | Cycle group   | Cycles through groups: (all) → group1 → group2 → ... → (all)        |
+| **Ctrl+D** | Describe      | Generate/edit a description using LLM (with tty-aware input)        |
+| **Ctrl+F** | Edit flags    | Add flag documentation to the highlighted command                   |
+| **Ctrl+B** | Select mode   | Enter multi-select for bulk operations (see below)                  |
+| **Ctrl+H** | Toggle header | Show/hide the key hints for more screen space                       |
+| **ESC**    | Cancel/back   | In scope/group mode: returns to command list. Otherwise: closes fzf |
 
 Keybindings are configurable via `~/.copa/config.toml`. See [Configuration](#configuration).
 
@@ -180,11 +184,11 @@ Selected 5 command(s).
 Action:
 ```
 
-| Action | What it does |
-|--------|-------------|
-| **g** | Assign all selected commands to a group (or clear their group) |
-| **d** | Delete all selected commands (with confirmation) |
-| **a** | Auto-generate descriptions for all selected commands using your configured LLM backend |
+| Action | What it does                                                                           |
+| ------ | -------------------------------------------------------------------------------------- |
+| **g**  | Assign all selected commands to a group (or clear their group)                         |
+| **d**  | Delete all selected commands (with confirmation)                                       |
+| **a**  | Auto-generate descriptions for all selected commands using your configured LLM backend |
 
 This is useful for organizing large command sets — select 20 undescribed commands and batch-describe them, or move a set of related commands into a group in one step.
 
@@ -208,12 +212,12 @@ Copa supplements zsh's built-in tab completion for **any** command — not just 
 
 Copa supports four completion modes, configured via `~/.copa/config.toml`:
 
-| Mode | Behavior |
-|------|----------|
+| Mode       | Behavior                                                                      |
+| ---------- | ----------------------------------------------------------------------------- |
 | `fallback` | **(default)** Only show Copa completions when native completers found nothing |
-| `hybrid` | Show Copa completions alongside native completions (in a separate group) |
-| `always` | Copa completions replace native completions |
-| `never` | Disable Copa tab completion entirely |
+| `hybrid`   | Show Copa completions alongside native completions (in a separate group)      |
+| `always`   | Copa completions replace native completions                                   |
+| `never`    | Disable Copa tab completion entirely                                          |
 
 ```toml
 # ~/.copa/config.toml
@@ -251,8 +255,8 @@ Copa's own CLI completions (`copa li<TAB>` → `list`) continue to work as befor
 
 ## Inline Suggestions (Ghost Text)
 
-| Tab Mode 1 (direct accept) | Tab Mode 2 (menu select, default) |
-|---|---|
+| Tab Mode 1 (direct accept)                         | Tab Mode 2 (menu select, default)                  |
+| -------------------------------------------------- | -------------------------------------------------- |
 | ![Tab Mode 1](demos/02a-suggestions-tab-mode1.gif) | ![Tab Mode 2](demos/02b-suggestions-tab-mode2.gif) |
 
 Copa shows grey ghost text after your cursor as you type — the best matching command from your database, ranked by frequency and recency. This works like fish shell's autosuggestions or zsh-autosuggestions, with zero plugin dependencies.
@@ -267,24 +271,25 @@ $ git pu█sh origin main     ← grey ghost text
 
 ### Keybindings
 
-| Key | Suggestion showing | No suggestion |
-|-----|-------------------|---------------|
-| Type chars | Insert char, re-fetch suggestion | Insert char, fetch suggestion |
-| Backspace | Delete char, **latch** (suppress suggestions) | Delete char normally |
-| **Tab** | `tab_accept=1`: accept full suggestion. `tab_accept=2` (default): open completion menu with suggestion highlighted at top, native completions below | If latched: unlatch + re-fetch suggestion. Else: normal tab completion |
-| **Down** | Open completion menu with suggestion highlighted at top | History navigation |
-| **Right arrow** | Accept one word, re-fetch | Move cursor right |
-| **Cmd+Right / End** | Accept full suggestion | Move to end of line |
-| Enter | Clear suggestion, execute | Execute |
-| Esc | Dismiss suggestion | Normal Esc |
-| Up | Clear suggestion, navigate history | History navigation |
-| Ctrl+R | Clear suggestion, open fzf | Open fzf |
+| Key                 | Suggestion showing                                                                                                                                  | No suggestion                                                          |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Type chars          | Insert char, re-fetch suggestion                                                                                                                    | Insert char, fetch suggestion                                          |
+| Backspace           | Delete char, **latch** (suppress suggestions)                                                                                                       | Delete char normally                                                   |
+| **Tab**             | `tab_accept=1`: accept full suggestion. `tab_accept=2` (default): open completion menu with suggestion highlighted at top, native completions below | If latched: unlatch + re-fetch suggestion. Else: normal tab completion |
+| **Down**            | Open completion menu with suggestion highlighted at top                                                                                             | History navigation                                                     |
+| **Right arrow**     | Accept one word, re-fetch                                                                                                                           | Move cursor right                                                      |
+| **Cmd+Right / End** | Accept full suggestion                                                                                                                              | Move to end of line                                                    |
+| Enter               | Clear suggestion, execute                                                                                                                           | Execute                                                                |
+| Esc                 | Dismiss suggestion                                                                                                                                  | Normal Esc                                                             |
+| Up                  | Clear suggestion, navigate history                                                                                                                  | History navigation                                                     |
+| Ctrl+R              | Clear suggestion, open fzf                                                                                                                          | Open fzf                                                               |
 
 ### Tab accept mode
 
 Copa supports two Tab behaviors when a suggestion is showing:
 
 **Menu select** (`tab_accept = 2`, default):
+
 1. Press **Tab** — ghost text clears, a completion menu opens with the Copa suggestion highlighted at the top, alongside native completions below
 2. Press **Tab** or **Space** — accepts the highlighted item
 3. Press **Escape** — cancels the menu, restores your original text
@@ -293,18 +298,19 @@ Copa supports two Tab behaviors when a suggestion is showing:
 This gives you a chance to see alternatives before committing. The Copa suggestion is always the first item in the menu.
 
 **Inline accept** (`tab_accept = 1`):
+
 - Press **Tab** — the suggestion is accepted directly into your command line. One keystroke, done.
 
 ### Completion menu navigation
 
 When the completion menu is open (from Tab in `tab_accept = 2` mode or from normal tab completion):
 
-| Key | Action |
-|-----|--------|
-| **Tab** | Accept the highlighted completion |
-| **Space** | Accept the highlighted completion |
-| **Escape** | Cancel — dismiss menu, restore original text |
-| **Arrow keys** | Navigate between completions |
+| Key            | Action                                       |
+| -------------- | -------------------------------------------- |
+| **Tab**        | Accept the highlighted completion            |
+| **Space**      | Accept the highlighted completion            |
+| **Escape**     | Cancel — dismiss menu, restore original text |
+| **Arrow keys** | Navigate between completions                 |
 
 ### Backspace latch
 
@@ -459,12 +465,12 @@ Flags:
 
 ### Supported headers
 
-| Header | Effect |
-|--------|--------|
-| `#@ Description: <text>` | Sets the command description (highest priority) |
-| `#@ Usage: <text>` | Usage / invocation syntax |
-| `#@ Purpose: <text>` | Why the script exists / when to use it |
-| `#@ Flag: <flag>: <description>` | Document a flag/option (repeatable) |
+| Header                           | Effect                                          |
+| -------------------------------- | ----------------------------------------------- |
+| `#@ Description: <text>`         | Sets the command description (highest priority) |
+| `#@ Usage: <text>`               | Usage / invocation syntax                       |
+| `#@ Purpose: <text>`             | Why the script exists / when to use it          |
+| `#@ Flag: <flag>: <description>` | Document a flag/option (repeatable)             |
 
 Scripts without `#@` headers still work — Copa falls back to legacy patterns (`# Description:`, `# Purpose:`, Python docstrings, generic comments).
 
@@ -501,25 +507,25 @@ copa share sync /path/to/team/copa-files/
 
 Copa ships with ready-to-use `.copa` files in the [`examples/`](examples/) directory:
 
-| File | Description |
-|------|-------------|
-| [`git.copa`](examples/git.copa) | Essential Git commands |
-| [`docker.copa`](examples/docker.copa) | Docker container management |
-| [`python-dev.copa`](examples/python-dev.copa) | Python development workflow |
-| [`npm.copa`](examples/npm.copa) | Node.js package management |
-| [`network.copa`](examples/network.copa) | Network diagnostics |
-| [`curl-http.copa`](examples/curl-http.copa) | HTTP requests and API testing |
-| [`ssh-remote.copa`](examples/ssh-remote.copa) | SSH, SCP, and remote server management |
-| [`adb.copa`](examples/adb.copa) | Android Debug Bridge |
-| [`aws.copa`](examples/aws.copa) | AWS CLI cloud infrastructure |
-| [`terraform.copa`](examples/terraform.copa) | Terraform infrastructure-as-code |
-| [`k8s.copa`](examples/k8s.copa) | Kubernetes cluster management |
-| [`systemd.copa`](examples/systemd.copa) | Linux service management |
-| [`sysadmin.copa`](examples/sysadmin.copa) | System administration |
-| [`process-monitoring.copa`](examples/process-monitoring.copa) | Process management and debugging |
-| [`disk-files.copa`](examples/disk-files.copa) | Disk usage and file management |
-| [`tmux.copa`](examples/tmux.copa) | Terminal multiplexer sessions |
-| [`homebrew.copa`](examples/homebrew.copa) | Homebrew package manager (macOS) |
+| File                                                          | Description                            |
+| ------------------------------------------------------------- | -------------------------------------- |
+| [`git.copa`](examples/git.copa)                               | Essential Git commands                 |
+| [`docker.copa`](examples/docker.copa)                         | Docker container management            |
+| [`python-dev.copa`](examples/python-dev.copa)                 | Python development workflow            |
+| [`npm.copa`](examples/npm.copa)                               | Node.js package management             |
+| [`network.copa`](examples/network.copa)                       | Network diagnostics                    |
+| [`curl-http.copa`](examples/curl-http.copa)                   | HTTP requests and API testing          |
+| [`ssh-remote.copa`](examples/ssh-remote.copa)                 | SSH, SCP, and remote server management |
+| [`adb.copa`](examples/adb.copa)                               | Android Debug Bridge                   |
+| [`aws.copa`](examples/aws.copa)                               | AWS CLI cloud infrastructure           |
+| [`terraform.copa`](examples/terraform.copa)                   | Terraform infrastructure-as-code       |
+| [`k8s.copa`](examples/k8s.copa)                               | Kubernetes cluster management          |
+| [`systemd.copa`](examples/systemd.copa)                       | Linux service management               |
+| [`sysadmin.copa`](examples/sysadmin.copa)                     | System administration                  |
+| [`process-monitoring.copa`](examples/process-monitoring.copa) | Process management and debugging       |
+| [`disk-files.copa`](examples/disk-files.copa)                 | Disk usage and file management         |
+| [`tmux.copa`](examples/tmux.copa)                             | Terminal multiplexer sessions          |
+| [`homebrew.copa`](examples/homebrew.copa)                     | Homebrew package manager (macOS)       |
 
 Load any of them:
 
@@ -560,26 +566,26 @@ alias copa-bt='copa fzf-list --set bluetooth | fzf'
 
 ```json
 {
-    "copa_version": "1.0",
-    "name": "bluetooth",
-    "description": "Bluetooth commands for Android devices",
-    "author": "markstanford",
-    "commands": [
-        {
-            "command": "adb shell cmd bluetooth_manager enable",
-            "description": "Enable Bluetooth",
-            "tags": ["bt", "android"]
-        },
-        {
-            "command": "flash_all",
-            "description": "Flash AOSP build to device",
-            "tags": ["aosp"],
-            "flags": {
-                "-w, --wipe": "Wipe userdata before flashing",
-                "--skip <parts>": "Skip specific partitions"
-            }
-        }
-    ]
+  "copa_version": "1.0",
+  "name": "bluetooth",
+  "description": "Bluetooth commands for Android devices",
+  "author": "markstanford",
+  "commands": [
+    {
+      "command": "adb shell cmd bluetooth_manager enable",
+      "description": "Enable Bluetooth",
+      "tags": ["bt", "android"]
+    },
+    {
+      "command": "flash_all",
+      "description": "Flash AOSP build to device",
+      "tags": ["aosp"],
+      "flags": {
+        "-w, --wipe": "Wipe userdata before flashing",
+        "--skip <parts>": "Skip specific partitions"
+      }
+    }
+  ]
 }
 ```
 
@@ -597,16 +603,17 @@ Add to your Claude Code MCP config (`.mcp.json` in your project or home dir):
 
 ```json
 {
-    "mcpServers": {
-        "copa": {
-            "command": "python3",
-            "args": ["-m", "copa.mcp_server"]
-        }
+  "mcpServers": {
+    "copa": {
+      "command": "python3",
+      "args": ["-m", "copa.mcp_server"]
     }
+  }
 }
 ```
 
 Available MCP tools:
+
 - `copa_search` — search commands by keyword
 - `copa_list_commands` — list commands ranked by score
 - `copa_list_groups` — list all groups
@@ -675,11 +682,13 @@ continue = ["pipe", "chain", "redirect"]  # default: |, &&, > re-open fzf
 When you press a composition key (like Ctrl-A for `&&`), Copa can either **close fzf** (placing the command + operator in your prompt) or **continue** (appending the operator and re-opening fzf so you can select the next command to chain).
 
 By default, "connector" operators re-open fzf:
+
 - `pipe` (`|`) — continue
 - `chain` (`&&`) — continue
 - `redirect` (`>`) — continue
 
 And "terminal" operators close fzf:
+
 - `background` (`&`) — close
 - `merge_output` (`2>&1`) — close
 - `suppress` (`2>/dev/null`) — close
@@ -699,32 +708,32 @@ continue = []
 
 ## CLI Reference
 
-| Command | Purpose |
-|---------|---------|
-| `copa setup` | Interactive setup wizard |
-| `copa add "cmd" -d "desc" -g group -f "flag: desc"` | Save a command (with optional flags) |
-| `copa edit ID [-d desc] [-g group] [-f flags] [--pin]` | Edit a command's metadata |
-| `copa remove ID` | Remove a command |
-| `copa pin ID` | Pin a command to the top |
-| `copa unpin ID` | Unpin a command |
-| `copa list [-g group] [-s source] [--set name] [--json]` | List by score |
-| `copa search "query" [-g group] [--set name] [--json]` | FTS search |
-| `copa create -g group [-o file]` | Create a .copa file from a group |
-| `copa stats` | Usage statistics |
-| `copa doctor` | Check setup and diagnose issues |
-| `copa sync` | Import from zsh history |
-| `copa scan [--dir path]` | Import script metadata from $PATH |
-| `copa evolve [-k 20] [--auto]` | Auto-add frequent commands (with optional LLM descriptions) |
-| `copa fix [--auto]` | Add missing descriptions (with optional LLM) |
-| `copa describe ID` | Generate description for one command |
-| `copa configure` | Set LLM backend (claude/ollama) |
-| `copa share export GROUP -o file` | Export group |
-| `copa share load SOURCE` | Load shared set |
-| `copa share list` | List shared sets |
-| `copa share sync DIR` | Sync .copa files from dir |
-| `copa import FILE [-g group]` | Import commands from markdown |
-| `copa reset` | Wipe database and start fresh (keeps config) |
-| `copa uninstall` | Remove Copa data and show cleanup steps |
+| Command                                                  | Purpose                                                     |
+| -------------------------------------------------------- | ----------------------------------------------------------- |
+| `copa setup`                                             | Interactive setup wizard                                    |
+| `copa add "cmd" -d "desc" -g group -f "flag: desc"`      | Save a command (with optional flags)                        |
+| `copa edit ID [-d desc] [-g group] [-f flags] [--pin]`   | Edit a command's metadata                                   |
+| `copa remove ID`                                         | Remove a command                                            |
+| `copa pin ID`                                            | Pin a command to the top                                    |
+| `copa unpin ID`                                          | Unpin a command                                             |
+| `copa list [-g group] [-s source] [--set name] [--json]` | List by score                                               |
+| `copa search "query" [-g group] [--set name] [--json]`   | FTS search                                                  |
+| `copa create -g group [-o file]`                         | Create a .copa file from a group                            |
+| `copa stats`                                             | Usage statistics                                            |
+| `copa doctor`                                            | Check setup and diagnose issues                             |
+| `copa sync`                                              | Import from zsh history                                     |
+| `copa scan [--dir path]`                                 | Import script metadata from $PATH                           |
+| `copa evolve [-k 20] [--auto]`                           | Auto-add frequent commands (with optional LLM descriptions) |
+| `copa fix [--auto]`                                      | Add missing descriptions (with optional LLM)                |
+| `copa describe ID`                                       | Generate description for one command                        |
+| `copa configure`                                         | Set LLM backend (claude/ollama)                             |
+| `copa share export GROUP -o file`                        | Export group                                                |
+| `copa share load SOURCE`                                 | Load shared set                                             |
+| `copa share list`                                        | List shared sets                                            |
+| `copa share sync DIR`                                    | Sync .copa files from dir                                   |
+| `copa import FILE [-g group]`                            | Import commands from markdown                               |
+| `copa reset`                                             | Wipe database and start fresh (keeps config)                |
+| `copa uninstall`                                         | Remove Copa data and show cleanup steps                     |
 
 ## How Scoring Works
 
