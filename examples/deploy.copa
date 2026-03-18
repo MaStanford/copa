@@ -1,0 +1,33 @@
+{
+    "copa_version": "1.0",
+    "name": "deploy",
+    "description": "Deployment workflows as recipes",
+    "author": "copa",
+    "commands": [],
+    "recipes": [
+        {
+            "name": "deploy-staging",
+            "description": "Build, test, and deploy to staging",
+            "steps": [
+                {"command": "npm run build", "description": "Build the project"},
+                {"command": "npm run test", "description": "Run test suite"},
+                {"command": "docker build -t app:staging .", "description": "Build Docker image"},
+                {"command": "docker push app:staging", "description": "Push to registry"},
+                {"command": "kubectl set image deploy/app app=app:staging -n staging", "description": "Update staging deployment"}
+            ]
+        },
+        {
+            "name": "deploy-production",
+            "description": "Full production deploy with safety checks",
+            "steps": [
+                {"command": "git diff --quiet HEAD", "description": "Ensure working tree is clean"},
+                {"command": "npm run build", "description": "Build the project"},
+                {"command": "npm run test", "description": "Run full test suite"},
+                {"command": "docker build -t app:$(git rev-parse --short HEAD) .", "description": "Build tagged Docker image"},
+                {"command": "docker push app:$(git rev-parse --short HEAD)", "description": "Push to registry"},
+                {"command": "kubectl set image deploy/app app=app:$(git rev-parse --short HEAD) -n production", "description": "Rolling update"},
+                {"command": "kubectl rollout status deploy/app -n production", "description": "Wait for rollout"}
+            ]
+        }
+    ]
+}

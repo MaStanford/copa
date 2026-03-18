@@ -83,13 +83,15 @@ def load_copa_file(path: Path) -> CopaFile:
 
 
 def export_group(db: Database, group_name: str, author: str = "") -> CopaFile:
-    """Export a group as a CopaFile."""
+    """Export a group as a CopaFile, including recipes."""
     commands = db.list_commands(group_name=group_name, limit=10000)
+    recipes = db.list_recipes(group_name=group_name)
     copa_file = CopaFile(
         name=group_name,
         description=f"Exported from Copa group '{group_name}'",
         author=author,
         commands=[cmd.to_dict() for cmd in commands],
+        recipes=[r.to_dict() for r in recipes],
     )
     return copa_file
 
@@ -129,6 +131,30 @@ def import_shared_set(db: Database, copa_file: CopaFile, source_path: str | None
             flags=flags if flags else None,
         )
         count += 1
+
+    # Import recipes
+    for recipe_data in copa_file.recipes:
+        recipe_name = recipe_data.get("name", "").strip()
+        if not recipe_name:
+            continue
+        steps_data = recipe_data.get("steps", [])
+        steps = [
+            (s.get("command", ""), s.get("description", ""))
+            for s in steps_data
+            if s.get("command", "").strip()
+        ]
+        if not steps:
+            continue
+        try:
+            db.add_recipe(
+                name=recipe_name,
+                steps=steps,
+                description=recipe_data.get("description", ""),
+                group_name=copa_file.name,
+                shared_set=copa_file.name,
+            )
+        except Exception:
+            pass  # skip duplicate recipes
 
     return count
 

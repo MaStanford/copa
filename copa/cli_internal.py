@@ -11,10 +11,11 @@ from .cli_common import _close_tty, _open_tty, complete_group, complete_shared_s
 
 @click.command("_record", hidden=True)
 @click.argument("command")
-def record(command: str):
+@click.option("--cwd", default=None, hidden=True, help="Working directory where command was run.")
+def record(command: str, cwd: str | None):
     """Record a command usage (called by precmd hook)."""
     db = get_db()
-    db.record_usage(command)
+    db.record_usage(command, cwd=cwd)
 
 
 @click.command("_init", hidden=True)
@@ -267,7 +268,9 @@ def complete_word(words):
 
 @click.command("_suggest", hidden=True)
 @click.argument("prefix")
-def suggest(prefix: str):
+@click.option("--cwd", default=None, hidden=True, help="Current working directory for directory-aware ranking.")
+@click.option("--no-dir", is_flag=True, hidden=True, help="Disable directory-aware scoring.")
+def suggest(prefix: str, cwd: str | None, no_dir: bool):
     """Return the best inline suggestion for a prefix."""
     if not prefix or not prefix.strip():
         return
@@ -284,9 +287,10 @@ def suggest(prefix: str):
     from .models import Command
     from .scoring import compute_score
 
+    dir_aware = not no_dir
     best = max(
         (Command.from_row(dict(r)) for r in rows),
-        key=lambda c: compute_score(c),
+        key=lambda c: compute_score(c, cwd=cwd, directory_aware=dir_aware),
     )
     if best.command != prefix:
         click.echo(best.command)

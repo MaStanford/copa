@@ -54,5 +54,25 @@
             "command": "docker stats",
             "description": "Live CPU/memory/network usage for containers"
         }
+    ],
+    "recipes": [
+        {
+            "name": "docker-rebuild",
+            "description": "Rebuild and restart all services",
+            "steps": [
+                {"command": "docker compose down", "description": "Stop running services"},
+                {"command": "docker compose build --no-cache", "description": "Rebuild all images"},
+                {"command": "docker compose up -d", "description": "Start services in background"}
+            ]
+        },
+        {
+            "name": "docker-clean",
+            "description": "Full Docker cleanup — remove everything unused",
+            "steps": [
+                {"command": "docker compose down -v", "description": "Stop services and remove volumes"},
+                {"command": "docker system prune -af", "description": "Remove unused images/containers"},
+                {"command": "docker volume prune -f", "description": "Remove unused volumes"}
+            ]
+        }
     ]
 }

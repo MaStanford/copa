@@ -42,6 +42,7 @@ eval "$(copa _fzf-config 2>/dev/null)" || {
   _COPA_SUGGEST_MIN_LENGTH='2'
   _COPA_SUGGEST_TAB_ACCEPT='2'
   _COPA_SUGGEST_COLOR='242'
+  _COPA_SUGGEST_DIR_AWARE='true'
   _COPA_HEADER=$'Copa | ^R:cycle | ^V:& | ^O:2>&1 | ^X:| | ^T:> | ^A:&& | ^/:quiet | ^H:keys\n^G:grp | ^D:desc | ^F:flag | ^S:scope | ^N:↻grp'
   typeset -gA _COPA_CLOSE_SUFFIXES
   _COPA_CLOSE_SUFFIXES[ctrl-v]=' &'
@@ -60,7 +61,7 @@ _copa_precmd() {
   last_cmd="$(fc -ln -1 2>/dev/null)"
   last_cmd="${last_cmd## }"  # strip leading space
   if [[ -n "$last_cmd" && "$last_cmd" != _copa_* ]]; then
-    copa _record "$last_cmd" &! 2>/dev/null
+    copa _record "$last_cmd" --cwd "$PWD" &! 2>/dev/null
   fi
 }
 
@@ -407,7 +408,9 @@ _copa_suggest_fetch() {
   (( ${#BUFFER} < _COPA_SUGGEST_MIN_LENGTH )) && return
   (( CURSOR != ${#BUFFER} )) && return  # skip if cursor not at end
   local result
-  result=$(copa _suggest "$BUFFER" 2>/dev/null)
+  local _suggest_args=("$BUFFER")
+  [[ "$_COPA_SUGGEST_DIR_AWARE" == 'true' ]] && _suggest_args+=(--cwd "$PWD")
+  result=$(copa _suggest "${_suggest_args[@]}" 2>/dev/null)
   if [[ -n "$result" && "$result" != "$BUFFER" ]]; then
     _COPA_SUGGESTION="$result"
     local blen=${#BUFFER}

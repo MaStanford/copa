@@ -641,10 +641,11 @@ def doctor():
 
 # --- Register extracted command modules ---
 
-from . import cli_internal, cli_llm, cli_share
+from . import cli_internal, cli_llm, cli_recipe, cli_share
 
 cli_llm.register(cli)
 cli_share.register(cli)
+cli_recipe.register(cli)
 cli_internal.register(cli)
 
 

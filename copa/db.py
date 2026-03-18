@@ -45,6 +45,26 @@ CREATE TABLE IF NOT EXISTS shared_sets (
 );
 
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
+
+CREATE TABLE IF NOT EXISTS recipes (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT NOT NULL UNIQUE,
+    description TEXT DEFAULT '',
+    group_name  TEXT DEFAULT NULL,
+    shared_set  TEXT DEFAULT NULL,
+    created_at  REAL DEFAULT 0,
+    last_run    REAL DEFAULT 0,
+    run_count   INTEGER DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS recipe_steps (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    recipe_id   INTEGER REFERENCES recipes(id) ON DELETE CASCADE,
+    step_order  INTEGER NOT NULL,
+    command     TEXT NOT NULL,
+    description TEXT DEFAULT '',
+    UNIQUE(recipe_id, step_order)
+);
 """
 
 FTS_SQL = """\
@@ -103,6 +123,13 @@ class Database:
         # Migration: add flags column if it doesn't exist yet
         try:
             self.conn.execute("ALTER TABLE commands ADD COLUMN flags TEXT DEFAULT ''")
+            self.conn.commit()
+        except sqlite3.OperationalError:
+            pass  # column already exists
+
+        # Migration: add last_cwd column for directory-aware suggestions
+        try:
+            self.conn.execute("ALTER TABLE commands ADD COLUMN last_cwd TEXT DEFAULT ''")
             self.conn.commit()
         except sqlite3.OperationalError:
             pass  # column already exists
@@ -187,22 +214,29 @@ class Database:
         self.conn.commit()
         return cmd_id
 
-    def record_usage(self, command: str):
-        """Record a command usage — increment frequency, update last_used."""
+    def record_usage(self, command: str, cwd: str | None = None):
+        """Record a command usage — increment frequency, update last_used and cwd."""
         now = time.time()
         cur = self.conn.cursor()
-        cur.execute(
-            """UPDATE commands SET frequency = frequency + 1, last_used = ?
-               WHERE command = ?""",
-            (now, command),
-        )
+        if cwd:
+            cur.execute(
+                """UPDATE commands SET frequency = frequency + 1, last_used = ?, last_cwd = ?
+                   WHERE command = ?""",
+                (now, cwd, command),
+            )
+        else:
+            cur.execute(
+                """UPDATE commands SET frequency = frequency + 1, last_used = ?
+                   WHERE command = ?""",
+                (now, command),
+            )
         if cur.rowcount == 0:
             # Not tracked yet — add from history
             cur.execute(
                 """INSERT INTO commands
-                   (command, frequency, last_used, first_added, source)
-                   VALUES (?, 1, ?, ?, 'history')""",
-                (command, now, now),
+                   (command, frequency, last_used, first_added, source, last_cwd)
+                   VALUES (?, 1, ?, ?, 'history', ?)""",
+                (command, now, now, cwd or ""),
             )
         self.conn.commit()
 
@@ -450,6 +484,114 @@ class Database:
         cur = self.conn.cursor()
         cur.execute("SELECT tag FROM tags WHERE command_id = ? ORDER BY tag", (cmd_id,))
         return [row["tag"] for row in cur.fetchall()]
+
+    # --- Recipes ---
+
+    def add_recipe(
+        self,
+        name: str,
+        steps: list[tuple[str, str]],
+        description: str = "",
+        group_name: str | None = None,
+        shared_set: str | None = None,
+    ) -> int:
+        """Add a recipe. steps is a list of (command, description) tuples. Returns recipe id."""
+        now = time.time()
+        cur = self.conn.cursor()
+        cur.execute(
+            """INSERT INTO recipes (name, description, group_name, shared_set, created_at)
+               VALUES (?, ?, ?, ?, ?)""",
+            (name, description, group_name, shared_set, now),
+        )
+        recipe_id = cur.lastrowid
+        for i, (cmd, desc) in enumerate(steps):
+            cur.execute(
+                """INSERT INTO recipe_steps (recipe_id, step_order, command, description)
+                   VALUES (?, ?, ?, ?)""",
+                (recipe_id, i + 1, cmd, desc),
+            )
+        self.conn.commit()
+        return recipe_id
+
+    def get_recipe(self, recipe_id: int):
+        """Get a recipe by ID with its steps."""
+        from .models import Recipe, RecipeStep
+
+        cur = self.conn.cursor()
+        cur.execute("SELECT * FROM recipes WHERE id = ?", (recipe_id,))
+        row = cur.fetchone()
+        if not row:
+            return None
+        recipe = Recipe.from_row(dict(row))
+        cur.execute(
+            "SELECT * FROM recipe_steps WHERE recipe_id = ? ORDER BY step_order",
+            (recipe_id,),
+        )
+        recipe.steps = [RecipeStep.from_row(dict(r)) for r in cur.fetchall()]
+        return recipe
+
+    def get_recipe_by_name(self, name: str):
+        """Get a recipe by name with its steps."""
+        from .models import Recipe, RecipeStep
+
+        cur = self.conn.cursor()
+        cur.execute("SELECT * FROM recipes WHERE name = ?", (name,))
+        row = cur.fetchone()
+        if not row:
+            return None
+        recipe = Recipe.from_row(dict(row))
+        cur.execute(
+            "SELECT * FROM recipe_steps WHERE recipe_id = ? ORDER BY step_order",
+            (recipe.id,),
+        )
+        recipe.steps = [RecipeStep.from_row(dict(r)) for r in cur.fetchall()]
+        return recipe
+
+    def list_recipes(self, group_name: str | None = None, shared_set: str | None = None) -> list:
+        """List all recipes, optionally filtered."""
+        from .models import Recipe, RecipeStep
+
+        clauses = []
+        params: list = []
+        if group_name is not None:
+            clauses.append("r.group_name = ?")
+            params.append(group_name)
+        if shared_set is not None:
+            clauses.append("r.shared_set = ?")
+            params.append(shared_set)
+        where = ""
+        if clauses:
+            where = "WHERE " + " AND ".join(clauses)
+
+        cur = self.conn.cursor()
+        cur.execute(f"SELECT * FROM recipes r {where} ORDER BY name", params)
+        recipes = []
+        for row in cur.fetchall():
+            recipe = Recipe.from_row(dict(row))
+            cur2 = self.conn.cursor()
+            cur2.execute(
+                "SELECT * FROM recipe_steps WHERE recipe_id = ? ORDER BY step_order",
+                (recipe.id,),
+            )
+            recipe.steps = [RecipeStep.from_row(dict(r)) for r in cur2.fetchall()]
+            recipes.append(recipe)
+        return recipes
+
+    def remove_recipe(self, recipe_id: int) -> bool:
+        cur = self.conn.cursor()
+        cur.execute("DELETE FROM recipes WHERE id = ?", (recipe_id,))
+        self.conn.commit()
+        return cur.rowcount > 0
+
+    def record_recipe_run(self, recipe_id: int):
+        """Record that a recipe was run."""
+        now = time.time()
+        cur = self.conn.cursor()
+        cur.execute(
+            "UPDATE recipes SET run_count = run_count + 1, last_run = ? WHERE id = ?",
+            (now, recipe_id),
+        )
+        self.conn.commit()
 
     # --- Meta ---
 

@@ -90,6 +90,7 @@ def load_config(path: Path | None = None) -> dict:
     config["_suggest_min_length"] = 2  # minimum chars before querying
     config["_suggest_tab_accept"] = 2  # 1=direct accept, 2=open menu first
     config["_suggest_color"] = "242"  # ghost text color (256-color palette)
+    config["_suggest_directory_aware"] = True  # boost suggestions from same directory
 
     if path is None:
         path = Path.home() / ".copa" / "config.toml"
@@ -147,6 +148,9 @@ def load_config(path: Path | None = None) -> dict:
         color = suggest_section.get("color")
         if isinstance(color, (int, str)):
             config["_suggest_color"] = str(color)
+        directory_aware = suggest_section.get("directory_aware")
+        if isinstance(directory_aware, bool):
+            config["_suggest_directory_aware"] = directory_aware
 
     keys_section = data.get("keys")
     if not isinstance(keys_section, dict):
@@ -251,6 +255,8 @@ def emit_zsh_config(config: dict[str, str]) -> str:
     lines.append(f"_COPA_SUGGEST_MIN_LENGTH='{config.get('_suggest_min_length', 2)}'")
     lines.append(f"_COPA_SUGGEST_TAB_ACCEPT='{config.get('_suggest_tab_accept', 2)}'")
     lines.append(f"_COPA_SUGGEST_COLOR='{config.get('_suggest_color', '242')}'")
+    suggest_dir = config.get("_suggest_directory_aware", True)
+    lines.append(f"_COPA_SUGGEST_DIR_AWARE='{'true' if suggest_dir else 'false'}'")
 
     # Split suffixes into close (fzf exits) and continue (fzf re-opens)
     lines.append("typeset -gA _COPA_CLOSE_SUFFIXES")

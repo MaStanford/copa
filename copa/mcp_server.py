@@ -251,6 +251,67 @@ def create_mcp_server():
             return f"Exported group '{group}' ({len(copa_file.commands)} commands) to {output_path}"
         return content
 
+    @mcp.tool()
+    def copa_recipe_list(group: str | None = None) -> str:
+        """List all Copa recipes. Optionally filter by group."""
+        recipes = db.list_recipes(group_name=group)
+        if not recipes:
+            return "No recipes found."
+        lines = []
+        for r in recipes:
+            badge = f" [{r.group_name}]" if r.group_name else ""
+            desc = f" — {r.description}" if r.description else ""
+            lines.append(f"[{r.id}] {r.name}{desc}{badge} ({len(r.steps)} steps, {r.run_count}×)")
+        return "\n".join(lines)
+
+    @mcp.tool()
+    def copa_recipe_show(name: str) -> str:
+        """Show a recipe's steps by name."""
+        recipe = db.get_recipe_by_name(name)
+        if not recipe:
+            return f"Recipe '{name}' not found."
+        lines = [f"Recipe: {recipe.name}"]
+        if recipe.description:
+            lines.append(f"Description: {recipe.description}")
+        if recipe.group_name:
+            lines.append(f"Group: {recipe.group_name}")
+        lines.append(f"Steps ({len(recipe.steps)}):")
+        for step in recipe.steps:
+            desc = f"  # {step.description}" if step.description else ""
+            lines.append(f"  {step.step_order}. {step.command}{desc}")
+        return "\n".join(lines)
+
+    @mcp.tool()
+    def copa_recipe_add(
+        name: str,
+        steps: list[dict],
+        description: str = "",
+        group: str | None = None,
+    ) -> str:
+        """Create a Copa recipe from ordered steps.
+
+        Each step should have 'command' and optionally 'description'.
+        Example: [{"command": "npm run build"}, {"command": "docker push app", "description": "Push to registry"}]
+        """
+        step_tuples = [
+            (s.get("command", ""), s.get("description", ""))
+            for s in steps
+            if s.get("command", "").strip()
+        ]
+        if not step_tuples:
+            return "No valid steps provided."
+        recipe_id = db.add_recipe(name, step_tuples, description=description, group_name=group)
+        return f"Created recipe [{recipe_id}]: {name} ({len(step_tuples)} steps)"
+
+    @mcp.tool()
+    def copa_recipe_remove(name: str) -> str:
+        """Remove a recipe by name."""
+        recipe = db.get_recipe_by_name(name)
+        if not recipe:
+            return f"Recipe '{name}' not found."
+        db.remove_recipe(recipe.id)
+        return f"Removed recipe [{recipe.id}]: {recipe.name}"
+
     return mcp
 
 
