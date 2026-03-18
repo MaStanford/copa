@@ -1047,15 +1047,17 @@ class TestTabAcceptZsh:
         assert "copa-suggestion" in content
         assert "-X 'SUGGESTED'" in content
 
-    def test_packaged_zsh_menuselect_uses_accept_search(self):
+    def test_packaged_zsh_menuselect_tab_cycles(self):
         content = self._read_zsh("copa/copa.zsh")
-        assert "bindkey -M menuselect '^I' accept-search" in content
+        assert "bindkey -M menuselect '^I' menu-complete" in content
+        assert "bindkey -M menuselect '^[[Z' reverse-menu-complete" in content
         assert "bindkey -M menuselect '^M' accept-search" in content
         assert ".accept-line" not in content or "zle .accept-line" in content
 
-    def test_root_zsh_menuselect_uses_accept_search(self):
+    def test_root_zsh_menuselect_tab_cycles(self):
         content = self._read_zsh("copa.zsh")
-        assert "bindkey -M menuselect '^I' accept-search" in content
+        assert "bindkey -M menuselect '^I' menu-complete" in content
+        assert "bindkey -M menuselect '^[[Z' reverse-menu-complete" in content
         assert "bindkey -M menuselect '^M' accept-search" in content
         assert ".accept-line" not in content or "zle .accept-line" in content
 

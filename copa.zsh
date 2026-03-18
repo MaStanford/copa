@@ -357,15 +357,19 @@ _copa_history_complete() {
     zstyle ':completion:*' group-name ''
     # Copa suggestion first, then Copa history, then native completions
     zstyle ':completion:*' group-order copa-suggestion copa-history
-    # Interactive menu with highlighting; Tab accepts the focused item
+    # Interactive menu with highlighting
     zstyle ':completion:*' menu select
     zmodload zsh/complist 2>/dev/null
-    bindkey -M menuselect '^I' accept-search
+    # Tab cycles forward through completions (standard behavior)
+    bindkey -M menuselect '^I' menu-complete
+    # Shift+Tab cycles backward
+    bindkey -M menuselect '^[[Z' reverse-menu-complete
+    # Enter accepts the highlighted completion
     bindkey -M menuselect '^M' accept-search
     bindkey -M menuselect '^J' accept-search
     # Escape cancels the menu and restores the original buffer
     bindkey -M menuselect '^[' send-break
-    # Space accepts the focused completion and closes the menu
+    # Space accepts the highlighted completion
     bindkey -M menuselect ' ' accept-search
     # Raise threshold before "show all N?" prompt
     LISTMAX=200

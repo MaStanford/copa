@@ -1,6 +1,6 @@
 # Copa Inline Suggestions — Tab Mode 2 (menu select, default)
 # Shows: ghost text appearing, Tab opens completion menu with suggestion
-#        highlighted, second Tab or Enter accepts, right-arrow word accept
+#        highlighted, Tab cycles through options, Enter accepts, right-arrow word accept
 
 Output "02b-suggestions-tab-mode2.gif"
 
@@ -51,8 +51,12 @@ Sleep 1.5s
 Tab
 Sleep 1.5s
 
-# Tab again accepts the highlighted suggestion
+# Tab cycles to next option
 Tab
+Sleep 1s
+
+# Enter accepts the highlighted suggestion
+Enter
 Sleep 1.5s
 
 # Clear and try another command

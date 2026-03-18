@@ -291,9 +291,10 @@ Copa supports two Tab behaviors when a suggestion is showing:
 **Menu select** (`tab_accept = 2`, default):
 
 1. Press **Tab** — ghost text clears, a completion menu opens with the Copa suggestion highlighted at the top, alongside native completions below
-2. Press **Tab** or **Space** — accepts the highlighted item
-3. Press **Escape** — cancels the menu, restores your original text
-4. Use **arrow keys** to navigate if you want a different completion
+2. Press **Tab** to cycle through options, **Shift+Tab** to cycle backward
+3. Press **Enter** or **Space** — accepts the highlighted item
+4. Press **Escape** — cancels the menu, restores your original text
+5. Use **arrow keys** to navigate if you want a different completion
 
 This gives you a chance to see alternatives before committing. The Copa suggestion is always the first item in the menu.
 
@@ -307,7 +308,9 @@ When the completion menu is open (from Tab in `tab_accept = 2` mode or from norm
 
 | Key            | Action                                       |
 | -------------- | -------------------------------------------- |
-| **Tab**        | Accept the highlighted completion            |
+| **Tab**        | Cycle forward through completions            |
+| **Shift+Tab**  | Cycle backward through completions           |
+| **Enter**      | Accept the highlighted completion            |
 | **Space**      | Accept the highlighted completion            |
 | **Escape**     | Cancel — dismiss menu, restore original text |
 | **Arrow keys** | Navigate between completions                 |
