@@ -51,7 +51,7 @@ _copa_precmd() {
   last_cmd="$(fc -ln -1 2>/dev/null)"
   last_cmd="${last_cmd## }"  # strip leading space
   if [[ -n "$last_cmd" && "$last_cmd" != _copa_* ]]; then
-    copa _record "$last_cmd" --cwd "$PWD" &! 2>/dev/null
+    copa _record "$last_cmd" --cwd "$PWD" </dev/null &>/dev/null &!
   fi
 }
 
