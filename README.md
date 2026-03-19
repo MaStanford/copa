@@ -134,6 +134,7 @@ The header shows available modes. Press **Ctrl+R** again while fzf is open to cy
 | `all`      | Score (frequency + recency) | Default — best commands float to top |
 | `frequent` | Frequency only              | Find your most-used commands         |
 | `recent`   | Last used time              | Find commands you ran recently       |
+| `recipes`  | Run count                   | Browse and run multi-step recipes    |
 
 ### Keybindings
 
@@ -141,13 +142,8 @@ While the fzf palette is open, these keys are available:
 
 | Key        | Action               | Effect                                                                       |
 | ---------- | -------------------- | ---------------------------------------------------------------------------- |
-| **Ctrl+R** | Cycle mode           | all → frequent → recent → all                                                |
-| **Ctrl+V** | Append `&`           | Run selected command in background                                           |
-| **Ctrl+O** | Append `2>&1`        | Merge stderr into stdout                                                     |
-| **Ctrl+X** | Append `\|`          | Pipe into next command                                                       |
-| **Ctrl+T** | Append `>`           | Redirect output                                                              |
-| **Ctrl+A** | Append `&&`          | Chain with next command                                                      |
-| **Ctrl+/** | Append `2>/dev/null` | Suppress stderr                                                              |
+| **Ctrl+R** | Cycle mode           | all → frequent → recent → recipes → all                                      |
+| **Ctrl+X** | Compose              | Opens a numbered menu to append shell operators (`\|`, `&&`, `>`, `&`, etc.) |
 | **Ctrl+S** | Scope by group       | Opens inline group list — Enter filters to that group, ESC returns to all    |
 | **Ctrl+G** | Assign group         | Opens inline group list — Enter assigns the group to the highlighted command |
 
@@ -310,12 +306,12 @@ When the completion menu is open (from Tab in `tab_accept = 2` mode or from norm
 
 | Key            | Action                                       |
 | -------------- | -------------------------------------------- |
-| **Tab**        | Cycle forward through completions            |
-| **Shift+Tab**  | Cycle backward through completions           |
-| **Enter**      | Accept the highlighted completion            |
-| **Space**      | Accept the highlighted completion            |
-| **Escape**     | Cancel — dismiss menu, restore original text |
-| **Arrow keys** | Navigate between completions                 |
+| **Tab**        | Cycle forward through completions                          |
+| **Shift+Tab**  | Cycle backward through completions                         |
+| **Enter**      | Accept the highlighted completion (no trailing space added) |
+| **Space**      | Accept the highlighted completion and add a space           |
+| **Escape**     | Cancel — dismiss menu, restore original text                |
+| **Arrow keys** | Navigate between completions                                |
 
 ### Backspace latch
 
@@ -718,12 +714,7 @@ Copa is configured via `~/.copa/config.toml`. All settings are optional — Copa
 # Values are fzf key names: ctrl-<letter>, alt-<letter>, ctrl-/
 # ctrl-r and enter are reserved and cannot be reassigned
 [keys]
-background = "ctrl-v"       # append &
-merge_output = "ctrl-o"     # append 2>&1
-pipe = "ctrl-x"             # append |
-redirect = "ctrl-t"         # append >
-chain = "ctrl-a"            # append &&
-suppress = "ctrl-/"         # append 2>/dev/null
+compose = "ctrl-x"          # open compose submenu (|, &&, >, &, 2>&1, 2>/dev/null)
 describe = "ctrl-d"         # LLM describe
 group = "ctrl-g"            # assign group (inline modal)
 flags = "ctrl-f"            # edit flags
@@ -745,39 +736,35 @@ tab_accept = 2              # 1 = accept directly, 2 = open menu first
 color = 242                 # ghost text color (256-color palette)
 directory_aware = true      # boost suggestions from the current directory
 
-# Composition key behavior (continue vs close)
-# "continue" keys re-open fzf so you can chain another command
-# All other composition keys close fzf immediately
-[composition]
-continue = ["pipe", "chain", "redirect"]  # default: |, &&, > re-open fzf
+# Fzf layout
+[layout]
+height = "80%"              # fzf height (default: 80%)
+preview_size = "40%"        # preview pane width (default: 40%)
 ```
 
-### Composition key behavior
+### Compose submenu
 
 ![Composition](demos/08-composition.gif)
 
-When you press a composition key (like Ctrl-A for `&&`), Copa can either **close fzf** (placing the command + operator in your prompt) or **continue** (appending the operator and re-opening fzf so you can select the next command to chain).
+Press **Ctrl+X** while a command is highlighted to open the compose submenu — a numbered menu of shell operators:
 
-By default, "connector" operators re-open fzf:
+```
+Compose: 1)| 2)&& 3)> 4)& 5)2>&1 6)2>/dev/null
+Select [1-6]:
+```
 
-- `pipe` (`|`) — continue
-- `chain` (`&&`) — continue
-- `redirect` (`>`) — continue
+| # | Operator      | Behavior   | What happens                                                |
+|---|---------------|------------|-------------------------------------------------------------|
+| 1 | `\|`          | continue   | Appends `\|` and re-opens fzf to select the next command    |
+| 2 | `&&`          | continue   | Appends `&&` and re-opens fzf to chain another command      |
+| 3 | `>`           | continue   | Appends `>` and re-opens fzf for the target                 |
+| 4 | `&`           | close      | Appends `&` and closes — run in background                  |
+| 5 | `2>&1`        | close      | Appends `2>&1` and closes — merge stderr                    |
+| 6 | `2>/dev/null` | close      | Appends `2>/dev/null` and closes — suppress stderr          |
 
-And "terminal" operators close fzf:
-
-- `background` (`&`) — close
-- `merge_output` (`2>&1`) — close
-- `suppress` (`2>/dev/null`) — close
+"Continue" operators re-open fzf so you can build multi-command pipelines. "Close" operators place the final command in your prompt.
 
 When chaining, the prompt shows your accumulated command: `copa [git pull && ]>`.
-
-To revert to the old behavior (all keys close immediately), set:
-
-```toml
-[composition]
-continue = []
-```
 
 ## End-to-End Workflow
 

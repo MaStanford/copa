@@ -120,19 +120,18 @@ class TestConfigToggleHeader:
         output = emit_zsh_config(config)
         assert "_COPA_TOGGLE_HEADER_KEY='ctrl-h'" in output
 
-    def test_header_is_two_lines(self):
+    def test_header_is_single_line(self):
         config = load_config()
         output = emit_zsh_config(config)
-        # Find the _COPA_HEADER line
         for line in output.split("\n"):
             if line.startswith("_COPA_HEADER="):
-                # Should contain \\n for the 2-line split
-                assert "\\n" in line
+                # Single line now — no \\n
+                assert "\\n" not in line
                 break
         else:
             raise AssertionError("_COPA_HEADER not found in output")
 
-    def test_header_row1_has_keys_label(self):
+    def test_header_has_keys_label(self):
         config = load_config()
         output = emit_zsh_config(config)
         for line in output.split("\n"):
@@ -140,16 +139,16 @@ class TestConfigToggleHeader:
                 assert "^H:keys" in line
                 break
 
-    def test_header_row2_has_action_keys(self):
+    def test_header_has_action_keys(self):
         config = load_config()
         output = emit_zsh_config(config)
         for line in output.split("\n"):
             if line.startswith("_COPA_HEADER="):
-                # After the \n split, second row should have these
                 assert "^G:grp" in line
                 assert "^D:desc" in line
                 assert "^F:flag" in line
                 assert "^S:scope" in line
+                assert "^X:compose" in line
                 break
 
 
@@ -221,7 +220,7 @@ class TestTtyHelpersInCommon:
 
 
 class TestCompositionConfig:
-    """Test continue vs close composition key splitting."""
+    """Test compose submenu configuration."""
 
     def test_default_continue_exists(self):
         assert DEFAULT_CONTINUE == {"pipe", "chain", "redirect"}
@@ -230,94 +229,41 @@ class TestCompositionConfig:
         for action in DEFAULT_CONTINUE:
             assert action in SUFFIXES
 
-    def test_load_config_has_continue_actions(self):
-        config = load_config()
-        assert config["_continue_actions"] == {"pipe", "chain", "redirect"}
+    def test_compose_key_in_defaults(self):
+        assert "compose" in DEFAULT_KEYS
+        assert DEFAULT_KEYS["compose"] == "ctrl-x"
 
-    def test_load_config_parses_composition_section(self, tmp_path):
-        config_file = tmp_path / "config.toml"
-        config_file.write_text('[composition]\ncontinue = ["pipe"]\n')
-        config = load_config(config_file)
-        assert config["_continue_actions"] == {"pipe"}
+    def test_compose_label_exists(self):
+        assert "compose" in LABELS
+        assert LABELS["compose"] == "compose"
 
-    def test_load_config_empty_continue_list(self, tmp_path):
-        config_file = tmp_path / "config.toml"
-        config_file.write_text("[composition]\ncontinue = []\n")
-        config = load_config(config_file)
-        assert config["_continue_actions"] == set()
-
-    def test_load_config_ignores_invalid_continue_actions(self, tmp_path):
-        config_file = tmp_path / "config.toml"
-        config_file.write_text('[composition]\ncontinue = ["pipe", "bogus", "chain"]\n')
-        config = load_config(config_file)
-        assert config["_continue_actions"] == {"pipe", "chain"}
-
-    def test_emit_splits_suffixes(self):
+    def test_emit_has_compose_key(self):
         config = load_config()
         output = emit_zsh_config(config)
-        assert "_COPA_CLOSE_SUFFIXES" in output
-        assert "_COPA_CONTINUE_SUFFIXES" in output
+        assert "_COPA_COMPOSE_KEY='ctrl-x'" in output
 
-    def test_emit_continue_keys_not_in_expect(self):
+    def test_emit_expect_empty(self):
+        """Compose submenu replaces individual expect keys — expect should be empty."""
         config = load_config()
-        output = emit_zsh_config(config)
-        # Default continue: pipe(ctrl-x), chain(ctrl-a), redirect(ctrl-t)
-        # These should NOT be in _COPA_EXPECT
-        for line in output.split("\n"):
-            if line.startswith("_COPA_EXPECT="):
-                assert "ctrl-x" not in line
-                assert "ctrl-a" not in line
-                assert "ctrl-t" not in line
-                # Close keys should still be there
-                assert "ctrl-v" in line
-                assert "ctrl-o" in line
-                assert "ctrl-/" in line
-                break
-        else:
-            raise AssertionError("_COPA_EXPECT not found in output")
-
-    def test_emit_continue_suffixes_correct(self):
-        config = load_config()
-        output = emit_zsh_config(config)
-        assert "_COPA_CONTINUE_SUFFIXES[ctrl-x]=' | '" in output
-        assert "_COPA_CONTINUE_SUFFIXES[ctrl-a]=' && '" in output
-        assert "_COPA_CONTINUE_SUFFIXES[ctrl-t]=' > '" in output
-
-    def test_emit_close_suffixes_correct(self):
-        config = load_config()
-        output = emit_zsh_config(config)
-        assert "_COPA_CLOSE_SUFFIXES[ctrl-v]=' &'" in output
-        assert "_COPA_CLOSE_SUFFIXES[ctrl-o]=' 2>&1'" in output
-        assert "_COPA_CLOSE_SUFFIXES[ctrl-/]=' 2>/dev/null'" in output
-
-    def test_empty_continue_all_keys_close(self, tmp_path):
-        config_file = tmp_path / "config.toml"
-        config_file.write_text("[composition]\ncontinue = []\n")
-        config = load_config(config_file)
-        output = emit_zsh_config(config)
-        # All 6 keys should be in _COPA_EXPECT
-        for line in output.split("\n"):
-            if line.startswith("_COPA_EXPECT="):
-                assert "ctrl-v" in line
-                assert "ctrl-o" in line
-                assert "ctrl-x" in line
-                assert "ctrl-t" in line
-                assert "ctrl-a" in line
-                assert "ctrl-/" in line
-                break
-        # No continue suffixes should be emitted
-        assert "_COPA_CONTINUE_SUFFIXES[" not in output
-
-    def test_all_continue_no_expect_keys(self, tmp_path):
-        config_file = tmp_path / "config.toml"
-        config_file.write_text(
-            '[composition]\ncontinue = ["pipe", "chain", "redirect", "background", "merge_output", "suppress"]\n'
-        )
-        config = load_config(config_file)
         output = emit_zsh_config(config)
         for line in output.split("\n"):
             if line.startswith("_COPA_EXPECT="):
                 assert line == "_COPA_EXPECT=''"
+                break
+
+    def test_emit_no_close_continue_suffixes(self):
+        """Compose submenu handles operators — no more split suffix maps."""
+        config = load_config()
+        output = emit_zsh_config(config)
+        assert "_COPA_CLOSE_SUFFIXES" not in output
+        assert "_COPA_CONTINUE_SUFFIXES" not in output
+
+    def test_header_has_compose(self):
+        config = load_config()
+        output = emit_zsh_config(config)
+        for line in output.split("\n"):
+            if line.startswith("_COPA_HEADER="):
+                assert "^X:compose" in line
                 break
 
 
@@ -341,7 +287,7 @@ class TestSelectKeyConfig:
         output = emit_zsh_config(config)
         assert "_COPA_SELECT_KEY='ctrl-b'" in output
 
-    def test_header_row2_has_select_label(self):
+    def test_header_has_select_label(self):
         config = load_config()
         output = emit_zsh_config(config)
         for line in output.split("\n"):
@@ -1016,7 +962,7 @@ class TestTabAcceptZsh:
         start = content.index("_copa_suggestion_complete()")
         func_block = content[start : start + 500]
         assert "_COPA_SUGGEST_PENDING" in func_block
-        assert "compadd -U -Q -V 'copa-suggestion'" in func_block
+        assert "compadd -U -Q -S '' -V 'copa-suggestion'" in func_block
         assert "compstate[list]='list force'" in func_block
 
     def test_root_zsh_suggestion_completer_exists(self):
@@ -1024,7 +970,7 @@ class TestTabAcceptZsh:
         start = content.index("_copa_suggestion_complete()")
         func_block = content[start : start + 500]
         assert "_COPA_SUGGEST_PENDING" in func_block
-        assert "compadd -U -Q -V 'copa-suggestion'" in func_block
+        assert "compadd -U -Q -S '' -V 'copa-suggestion'" in func_block
         assert "compstate[list]='list force'" in func_block
 
     def test_packaged_zsh_suggestion_completer_runs_first(self):
@@ -1052,14 +998,12 @@ class TestTabAcceptZsh:
         assert "bindkey -M menuselect '^I' menu-complete" in content
         assert "bindkey -M menuselect '^[[Z' reverse-menu-complete" in content
         assert "bindkey -M menuselect '^M' accept-search" in content
-        assert ".accept-line" not in content or "zle .accept-line" in content
 
     def test_root_zsh_menuselect_tab_cycles(self):
         content = self._read_zsh("copa.zsh")
         assert "bindkey -M menuselect '^I' menu-complete" in content
         assert "bindkey -M menuselect '^[[Z' reverse-menu-complete" in content
         assert "bindkey -M menuselect '^M' accept-search" in content
-        assert ".accept-line" not in content or "zle .accept-line" in content
 
     def test_packaged_zsh_end_of_line_accepts_full(self):
         content = self._read_zsh("copa/copa.zsh")

@@ -1,5 +1,5 @@
-# Copa Composition — Chain commands with operators
-# Shows: pipe (|), chain (&&), background (&), redirect (>)
+# Copa Compose Submenu — Chain commands with operators
+# Shows: compose menu with |, &&, >, &, 2>&1, 2>/dev/null
 
 Output "08-composition.gif"
 
@@ -30,8 +30,12 @@ Sleep 1s
 Type "docker ps"
 Sleep 1s
 
-# Pipe into next command (Ctrl+X) — fzf re-opens
+# Open compose menu (Ctrl+X)
 Ctrl+X
+Sleep 1.5s
+
+# Select pipe (1) — fzf re-opens
+Type "1"
 Sleep 1.5s
 
 # Select next command to pipe into
@@ -45,21 +49,25 @@ Sleep 2s
 Ctrl+C
 Sleep 500ms
 
-# Demo && chaining
+# Demo && chaining via compose menu
 Ctrl+R
 Sleep 1s
 Type "git pull"
 Sleep 800ms
 
-# Chain with && (Ctrl+A) — fzf re-opens
-Ctrl+A
+# Open compose menu and select && (2) — fzf re-opens
+Ctrl+X
+Sleep 1s
+Type "2"
 Sleep 1.5s
 
 Type "npm"
 Sleep 800ms
 
-# Chain again
-Ctrl+A
+# Chain again with compose menu
+Ctrl+X
+Sleep 1s
+Type "2"
 Sleep 1.5s
 
 Type "pytest"
@@ -72,17 +80,19 @@ Sleep 2.5s
 Ctrl+C
 Sleep 500ms
 
-# Demo redirect (Ctrl+T)
+# Demo background (&) via compose menu
 Ctrl+R
 Sleep 1s
 Type "kubectl"
 Sleep 800ms
 
-# Redirect output (Ctrl+T)
-Ctrl+T
+# Open compose menu and select background (4) — closes immediately
+Ctrl+X
+Sleep 1s
+Type "4"
 Sleep 1.5s
 
-# Show the command with > appended
+# Show the command with & appended
 Sleep 2s
 Ctrl+C
 Sleep 1s

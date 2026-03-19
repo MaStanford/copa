@@ -10,19 +10,20 @@
 #   1. Records every command you run (precmd hook, background, zero latency)
 #   2. Replaces Ctrl+R with an fzf command palette that searches across
 #      command text AND descriptions — not just raw history
-#   3. Ctrl+R cycles modes inside fzf: all → frequent → recent → all
-#   4. Composition keys append shell operators (|, &&, &, etc.) to selected commands
+#   3. Ctrl+R cycles modes inside fzf: all → frequent → recent → recipes → all
+#   4. Ctrl+X opens a compose submenu to append shell operators (|, &&, &, etc.)
 
 # --- Load keybinding config (runs once at shell startup) ---
 eval "$(copa _fzf-config 2>/dev/null)" || {
   # Fallback defaults if copa _fzf-config fails
-  _COPA_EXPECT='ctrl-v,ctrl-o,ctrl-/'
+  _COPA_EXPECT=''
   _COPA_DESCRIBE_KEY='ctrl-d'
   _COPA_GROUP_KEY='ctrl-g'
   _COPA_FLAGS_KEY='ctrl-f'
   _COPA_FILTER_GROUP_KEY='ctrl-s'
   _COPA_CYCLE_GROUP_KEY='ctrl-n'
   _COPA_TOGGLE_HEADER_KEY='ctrl-h'
+  _COPA_COMPOSE_KEY='ctrl-x'
   _COPA_SELECT_KEY='ctrl-b'
   _COPA_HEIGHT='80%'
   _COPA_PREVIEW_SIZE='40%'
@@ -33,15 +34,7 @@ eval "$(copa _fzf-config 2>/dev/null)" || {
   _COPA_SUGGEST_TAB_ACCEPT='2'
   _COPA_SUGGEST_COLOR='242'
   _COPA_SUGGEST_DIR_AWARE='true'
-  _COPA_HEADER=$'Copa | ^R:cycle | ^V:& | ^O:2>&1 | ^X:| | ^T:> | ^A:&& | ^/:quiet | ^H:keys\n^G:grp | ^D:desc | ^F:flag | ^S:scope | ^N:↻grp'
-  typeset -gA _COPA_CLOSE_SUFFIXES
-  _COPA_CLOSE_SUFFIXES[ctrl-v]=' &'
-  _COPA_CLOSE_SUFFIXES[ctrl-o]=' 2>&1'
-  _COPA_CLOSE_SUFFIXES[ctrl-/]=' 2>/dev/null'
-  typeset -gA _COPA_CONTINUE_SUFFIXES
-  _COPA_CONTINUE_SUFFIXES[ctrl-x]=' | '
-  _COPA_CONTINUE_SUFFIXES[ctrl-t]=' > '
-  _COPA_CONTINUE_SUFFIXES[ctrl-a]=' && '
+  _COPA_HEADER='Copa | ^R:cycle | ^X:compose | ^G:grp | ^D:desc | ^F:flag | ^S:scope | ^N:↻grp | ^B:sel | ^H:keys'
 }
 
 # --- precmd hook: record last command ---
@@ -58,6 +51,39 @@ _copa_precmd() {
 # Add to precmd hooks (avoid duplicates)
 autoload -Uz add-zsh-hook
 add-zsh-hook precmd _copa_precmd
+
+# --- Wrap header to fit terminal width ---
+# Splits the " | "-delimited header into lines that fit within $COLUMNS.
+_copa_wrap_header() {
+  local raw="$1"
+  local full_width="${COLUMNS:-80}"
+  # Account for fzf preview pane (e.g. "40%" or "40")
+  local preview="${_COPA_PREVIEW_SIZE:-40%}"
+  local width=$full_width
+  if [[ "$preview" == *% ]]; then
+    local pct="${preview%%%}"
+    width=$(( full_width * (100 - pct) / 100 ))
+  fi
+  local -a items
+  items=("${(@s: | :)raw}")
+  local line="" result="" candidate
+  for item in "${items[@]}"; do
+    if [[ -z "$line" ]]; then
+      candidate="$item"
+    else
+      candidate="$line | $item"
+    fi
+    if (( ${#candidate} > width )) && [[ -n "$line" ]]; then
+      [[ -n "$result" ]] && result+=$'\n'
+      result+="$line"
+      line="$item"
+    else
+      line="$candidate"
+    fi
+  done
+  [[ -n "$line" ]] && { [[ -n "$result" ]] && result+=$'\n'; result+="$line"; }
+  echo "$result"
+}
 
 # --- Ctrl+R: fzf-powered command palette ---
 # Replaces default zsh reverse-search. fzf searches all visible fields:
@@ -87,25 +113,30 @@ _copa_fzf_widget() {
     local prompt_text="copa> "
     if [[ -n "$accumulated" ]]; then
       local display="$accumulated"
-      # Truncate long chains: show last 30 chars
       if (( ${#display} > 30 )); then
         display="...${display: -30}"
       fi
       prompt_text="copa [${display}]> "
     fi
 
+    # Preview command: auto-detect recipe IDs (prefixed with 'r') vs command IDs
+    local preview_cmd="id={1}; if [[ \$id == r* ]]; then $copa_bin _recipe-preview \${id#r}; else $copa_bin _preview \$id; fi"
+
+    # Wrap header to fit terminal width
+    local wrapped_header
+    wrapped_header=$(_copa_wrap_header "$_COPA_HEADER")
+
     # Build fzf args dynamically
     local -a fzf_args=(
         --ansi
         --delimiter '┃'
         --with-nth '2..3'
-        --preview "$copa_bin _preview {1}"
+        --preview "$preview_cmd"
         --preview-window "right:${_COPA_PREVIEW_SIZE}:wrap"
-        --header "$_COPA_HEADER"
+        --header "$wrapped_header"
         --prompt "$prompt_text"
         --height "${_COPA_HEIGHT}"
         --layout reverse
-        --expect "$_COPA_EXPECT"
         --bind "${_COPA_DESCRIBE_KEY}:execute($copa_bin describe {1})+refresh-preview"
         --bind "${_COPA_FLAGS_KEY}:execute($copa_bin _set-flags {1})+reload($copa_bin fzf-list)+refresh-preview"
         --bind "${_COPA_FILTER_GROUP_KEY}:reload($copa_bin _list-groups)+change-prompt(scope> )+clear-query+hide-preview"
@@ -128,14 +159,17 @@ _copa_fzf_widget() {
             echo "reload('"$copa_bin"' fzf-list --mode frequent)+change-prompt(frequent> )"
           elif [[ $FZF_PROMPT == "frequent> " ]]; then
             echo "reload('"$copa_bin"' fzf-list --mode recent)+change-prompt(recent> )"
+          elif [[ $FZF_PROMPT == "recent> " ]]; then
+            echo "reload('"$copa_bin"' fzf-list --mode recipes)+change-prompt(recipes> )"
           else
             echo "reload('"$copa_bin"' fzf-list --mode all)+change-prompt(copa> )"
           fi'
         --bind "${_COPA_TOGGLE_HEADER_KEY}:toggle-header"
         --bind "${_COPA_SELECT_KEY}:execute-silent(printf 'SELECT' > ${_copa_compose_file})+accept"
+        --bind "${_COPA_COMPOSE_KEY}:execute-silent(printf 'COMPOSE' > ${_copa_compose_file})+accept"
         --bind 'enter:transform:
           if [[ $FZF_PROMPT == "scope> " ]]; then
-            selected={2};
+            selected="{2}";
             if [[ $selected == "(all)" ]]; then
               echo "reload('"$copa_bin"' fzf-list --mode all)+change-prompt(copa> )+clear-query+show-preview"
             else
@@ -143,8 +177,8 @@ _copa_fzf_widget() {
             fi
           elif [[ $FZF_PROMPT == "group> " ]]; then
             cmd_id=$(cat '"${_copa_modal_file}"');
-            selected={2};
-            '"$copa_bin"' _set-group-direct $cmd_id $selected;
+            selected="{2}";
+            '"$copa_bin"' _set-group-direct "$cmd_id" "$selected";
             echo "reload('"$copa_bin"' fzf-list)+change-prompt(copa> )+clear-query+show-preview"
           else
             echo "accept"
@@ -157,44 +191,54 @@ _copa_fzf_widget() {
           fi'
     )
 
-    # Add continue key bindings dynamically — these write suffix to temp file + accept
-    local _ckey _csuffix
-    for _ckey _csuffix in "${(@kv)_COPA_CONTINUE_SUFFIXES}"; do
-      fzf_args+=(--bind "${_ckey}:execute-silent(printf '%s' '${_csuffix}' > ${_copa_compose_file})+accept")
-    done
-
     output=$("$copa_bin" fzf-list --mode "$mode" | fzf "${fzf_args[@]}")
 
-    # Check if a continue key was pressed (compose file has content)
-    local compose_suffix=""
-    [[ -s "$_copa_compose_file" ]] && compose_suffix=$(<"$_copa_compose_file")
+    local compose_action=""
+    [[ -s "$_copa_compose_file" ]] && compose_action=$(<"$_copa_compose_file")
 
-    if [[ "$compose_suffix" == "SELECT" ]]; then
-      # Enter select mode — run a separate fzf with --multi
+    if [[ "$compose_action" == "SELECT" ]]; then
       _copa_select_mode "$copa_bin"
       break
     fi
 
     if [[ -n "$output" ]]; then
-      local key selected cmd
-      key=$(echo "$output" | head -1)
-      selected=$(echo "$output" | tail -n +2)
+      local selected cmd
+      selected=$(echo "$output" | tail -1)
 
       if [[ -n "$selected" && "$selected" == *┃* ]]; then
-        cmd=$(echo "$selected" | cut -d'┃' -f2 | sed 's/^ *//;s/ *$//')
+        local id_field="${selected%%┃*}"
+        id_field="${id_field// /}"
 
-        if [[ -n "$compose_suffix" ]]; then
-          # Continue key: accumulate and re-open fzf
-          accumulated="${accumulated}${cmd}${compose_suffix}"
-          continue
+        # Recipe mode: expand recipe steps to && chain
+        if [[ "$id_field" == r* ]]; then
+          local recipe_id="${id_field#r}"
+          cmd=$("$copa_bin" _recipe-expand "$recipe_id" 2>/dev/null)
+          [[ -z "$cmd" ]] && cmd=$(echo "$selected" | cut -d'┃' -f2 | sed 's/^ *//;s/ *$//')
+        else
+          cmd=$(echo "$selected" | cut -d'┃' -f2 | sed 's/^ *//;s/ *$//')
         fi
 
-        # Close key or Enter — finalize
-        local suffix="${_COPA_CLOSE_SUFFIXES[$key]}"
-        LBUFFER="${accumulated}${cmd}${suffix}"
+        if [[ "$compose_action" == "COMPOSE" ]]; then
+          # Show compose submenu
+          local suffix
+          suffix=$(_copa_compose_menu)
+          if [[ -n "$suffix" ]]; then
+            local behavior=$(_copa_compose_behavior "$suffix")
+            if [[ "$behavior" == "continue" ]]; then
+              accumulated="${accumulated}${cmd}${suffix}"
+              continue
+            else
+              LBUFFER="${accumulated}${cmd}${suffix}"
+            fi
+          else
+            # Cancelled — put command in buffer as-is
+            LBUFFER="${accumulated}${cmd}"
+          fi
+        else
+          LBUFFER="${accumulated}${cmd}"
+        fi
       fi
     fi
-    # ESC, empty output, or no ┃ — break without setting LBUFFER
     break
   done
 
@@ -202,6 +246,44 @@ _copa_fzf_widget() {
   [[ -f "$_copa_compose_file" ]] && rm -f "$_copa_compose_file"
 
   zle reset-prompt
+}
+
+# --- Compose submenu: pick a shell operator ---
+_copa_compose_menu() {
+  local choice
+  local _copa_tty
+  exec {_copa_tty}<>/dev/tty
+
+  echo "" >&$_copa_tty
+  echo "  Compose operator:" >&$_copa_tty
+  echo "    1: |          pipe" >&$_copa_tty
+  echo "    2: &&         chain" >&$_copa_tty
+  echo "    3: >          redirect" >&$_copa_tty
+  echo "    4: &          background" >&$_copa_tty
+  echo "    5: 2>&1       merge stderr" >&$_copa_tty
+  echo "    6: 2>/dev/null  suppress stderr" >&$_copa_tty
+  echo -n "  Choice (1-6, q=cancel): " >&$_copa_tty
+  read -u $_copa_tty choice
+
+  exec {_copa_tty}<&-
+
+  case "$choice" in
+    1) echo " | " ;;
+    2) echo " && " ;;
+    3) echo " > " ;;
+    4) echo " &" ;;
+    5) echo " 2>&1" ;;
+    6) echo " 2>/dev/null" ;;
+    *) echo "" ;;
+  esac
+}
+
+# --- Compose behavior: continue (re-open fzf) or close ---
+_copa_compose_behavior() {
+  case "$1" in
+    " | "|" && "|" > ") echo "continue" ;;
+    *) echo "close" ;;
+  esac
 }
 
 # --- Select mode: multi-select items then batch-operate ---
@@ -304,7 +386,7 @@ _copa_suggestion_complete() {
     local prefix_len=$(( ${#LBUFFER} - ${#cur_word} ))
     local insert_text="${pending:$prefix_len}"
     if [[ -n "$insert_text" ]]; then
-        compadd -U -Q -V 'copa-suggestion' -X 'SUGGESTED' -o nosort -- "$insert_text"
+        compadd -U -Q -S '' -V 'copa-suggestion' -X 'SUGGESTED' -o nosort -- "$insert_text"
     fi
     compstate[list]='list force'
     return 1  # don't stop chain — let _complete and _copa_history_complete also run
@@ -327,10 +409,10 @@ _copa_history_complete() {
     if (( ${#results} )); then
         if [[ "$_COPA_COMPLETION_MODE" == 'always' ]]; then
             # Replace: clear native matches, add only Copa results
-            compadd -U -V 'copa-history' -X 'COPA HISTORY' -o nosort -- "${results[@]}"
+            compadd -U -S '' -V 'copa-history' -X 'COPA HISTORY' -o nosort -- "${results[@]}"
         else
             # fallback & hybrid: add Copa results as a separate group
-            compadd -V 'copa-history' -X 'COPA HISTORY' -o nosort -- "${results[@]}"
+            compadd -S '' -V 'copa-history' -X 'COPA HISTORY' -o nosort -- "${results[@]}"
         fi
     fi
 }

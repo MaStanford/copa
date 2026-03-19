@@ -142,6 +142,40 @@ def format_preview(cmd: Command) -> str:
     return "\n".join(lines)
 
 
+def format_recipe_lines(recipes) -> list[str]:
+    """Format recipes for fzf display.
+
+    Layout matches commands: {id} ┃ {recipe_name} ┃ {metadata} ┃ {search_text}
+    The command field contains all steps joined with && for direct use.
+    """
+    if not recipes:
+        return []
+
+    _CYAN = "\033[36m"
+    lines = []
+    for r in recipes:
+        # Field 1: hidden ID (prefixed with 'r' to distinguish from commands)
+        id_field = f"r{r.id:>4}"
+
+        # Field 2: recipe name (shown in fzf)
+        steps_joined = " && ".join(s.command for s in r.steps)
+        cmd_field = f" {r.name} "
+
+        # Field 3: metadata
+        badge = f"{_DIM}{_CYAN}[recipe]{_RESET}"
+        step_count = f"{_DIM}{len(r.steps)} steps{_RESET}"
+        runs = f"{_DIM}{r.run_count}×{_RESET}" if r.run_count else ""
+        meta_field = f" {badge}  {step_count}  {runs}"
+
+        # Field 4: hidden searchable text (description + step commands)
+        search = r.description or ""
+        search += " " + steps_joined
+
+        lines.append(f"{id_field} ┃{cmd_field}┃{meta_field}┃ {search}")
+
+    return lines
+
+
 def fzf_list(
     db: Database,
     mode: str = "all",
@@ -150,8 +184,12 @@ def fzf_list(
 ) -> list[str]:
     """Generate fzf-compatible output lines.
 
-    Modes: all, frequent, recent, group, set
+    Modes: all, frequent, recent, group, set, recipes
     """
+    if mode == "recipes":
+        recipes = db.list_recipes(group_name=group)
+        return format_recipe_lines(recipes)
+
     if mode == "set" and shared_set:
         commands = db.list_commands(shared_set=shared_set, limit=500)
     elif mode == "group" and group:

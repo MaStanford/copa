@@ -7,12 +7,7 @@ from pathlib import Path
 
 # Action name -> default fzf key
 DEFAULT_KEYS: dict[str, str] = {
-    "background": "ctrl-v",
-    "merge_output": "ctrl-o",
-    "pipe": "ctrl-x",
-    "redirect": "ctrl-t",
-    "chain": "ctrl-a",
-    "suppress": "ctrl-/",
+    "compose": "ctrl-x",
     "describe": "ctrl-d",
     "group": "ctrl-g",
     "flags": "ctrl-f",
@@ -22,28 +17,34 @@ DEFAULT_KEYS: dict[str, str] = {
     "select": "ctrl-b",
 }
 
-# Action name -> shell suffix appended to the command
+# Composition operators available in the compose submenu
+# Order determines numbering in the menu
+COMPOSE_OPERATORS: list[tuple[str, str, str]] = [
+    # (label, suffix, behavior: "continue" or "close")
+    ("|", " | ", "continue"),
+    ("&&", " && ", "continue"),
+    (">", " > ", "continue"),
+    ("&", " &", "close"),
+    ("2>&1", " 2>&1", "close"),
+    ("2>/dev/null", " 2>/dev/null", "close"),
+]
+
+# Action name -> shell suffix appended to the command (kept for backwards compat)
 SUFFIXES: dict[str, str] = {
+    "pipe": " | ",
+    "chain": " && ",
+    "redirect": " > ",
     "background": " &",
     "merge_output": " 2>&1",
-    "pipe": " | ",
-    "redirect": " > ",
-    "chain": " && ",
     "suppress": " 2>/dev/null",
 }
 
 # Composition actions that re-open fzf (continue) vs close it
-# Users can override via [composition] continue = [...] in config.toml
 DEFAULT_CONTINUE: set[str] = {"pipe", "chain", "redirect"}
 
 # Action name -> short label for the header
 LABELS: dict[str, str] = {
-    "background": "&",
-    "merge_output": "2>&1",
-    "pipe": "|",
-    "redirect": ">",
-    "chain": "&&",
-    "suppress": "quiet",
+    "compose": "compose",
     "group": "grp",
     "describe": "desc",
     "flags": "flag",
@@ -85,7 +86,8 @@ def load_config(path: Path | None = None) -> dict:
     config: dict = dict(DEFAULT_KEYS)
     config["_completion_branding"] = True  # default: show branding
     config["_completion_mode"] = "hybrid"  # default: Copa + native completions shown together
-    config["_continue_actions"] = set(DEFAULT_CONTINUE)  # default continue-vs-close split
+    # _continue_actions kept for backwards compat with old config files
+    config["_continue_actions"] = set(DEFAULT_CONTINUE)
     config["_suggest_enabled"] = True  # default: inline suggestions on
     config["_suggest_min_length"] = 2  # minimum chars before querying
     config["_suggest_tab_accept"] = 2  # 1=direct accept, 2=open menu first
@@ -190,52 +192,35 @@ def emit_zsh_config(config: dict[str, str]) -> str:
     """
     lines: list[str] = []
 
-    # Separate describe, group, flags, filter_group, and cycle_group keys from expect keys
+    # Action keys
     describe_key = config.get("describe", DEFAULT_KEYS["describe"])
     group_key = config.get("group", DEFAULT_KEYS["group"])
     flags_key = config.get("flags", DEFAULT_KEYS["flags"])
     filter_group_key = config.get("filter_group", DEFAULT_KEYS["filter_group"])
     cycle_group_key = config.get("cycle_group", DEFAULT_KEYS["cycle_group"])
     toggle_header_key = config.get("toggle_header", DEFAULT_KEYS["toggle_header"])
+    compose_key = config.get("compose", DEFAULT_KEYS["compose"])
+    select_key = config.get("select", DEFAULT_KEYS["select"])
 
-    continue_actions = config.get("_continue_actions", DEFAULT_CONTINUE)
-
-    # Only close keys go in --expect (causes fzf to exit)
-    expect_keys = [
-        config[action]
-        for action in ("background", "merge_output", "pipe", "redirect", "chain", "suppress")
-        if action in config and action not in continue_actions
-    ]
-
-    lines.append(f"_COPA_EXPECT='{','.join(expect_keys)}'")
+    # No more --expect keys — compose menu handles operators via execute
+    lines.append("_COPA_EXPECT=''")
     lines.append(f"_COPA_DESCRIBE_KEY='{describe_key}'")
     lines.append(f"_COPA_GROUP_KEY='{group_key}'")
     lines.append(f"_COPA_FLAGS_KEY='{flags_key}'")
     lines.append(f"_COPA_FILTER_GROUP_KEY='{filter_group_key}'")
     lines.append(f"_COPA_CYCLE_GROUP_KEY='{cycle_group_key}'")
     lines.append(f"_COPA_TOGGLE_HEADER_KEY='{toggle_header_key}'")
-    select_key = config.get("select", DEFAULT_KEYS["select"])
+    lines.append(f"_COPA_COMPOSE_KEY='{compose_key}'")
     lines.append(f"_COPA_SELECT_KEY='{select_key}'")
 
-    # Build 2-line header to avoid wrapping on narrow terminals
-    # Row 1: composition keys + toggle
-    row1_parts = ["Copa", f"{_format_key_label('ctrl-r')}:cycle"]
-    for action in ("background", "merge_output", "pipe", "redirect", "chain", "suppress", "toggle_header"):
+    # Build header as a single line; copa.zsh wraps it based on terminal width
+    parts = ["Copa", f"{_format_key_label('ctrl-r')}:cycle"]
+    for action in ("compose", "group", "describe", "flags", "filter_group", "cycle_group", "select", "toggle_header"):
         key = config.get(action, DEFAULT_KEYS[action])
         label = LABELS[action]
-        row1_parts.append(f"{_format_key_label(key)}:{label}")
-    row1 = " | ".join(row1_parts)
-
-    # Row 2: action keys
-    row2_parts = []
-    for action in ("group", "describe", "flags", "filter_group", "cycle_group", "select"):
-        key = config.get(action, DEFAULT_KEYS[action])
-        label = LABELS[action]
-        row2_parts.append(f"{_format_key_label(key)}:{label}")
-    row2 = " | ".join(row2_parts)
-
-    # Use $'...\n...' quoting so zsh interprets the newline
-    lines.append(f"_COPA_HEADER=$'{row1}\\n{row2}'")
+        parts.append(f"{_format_key_label(key)}:{label}")
+    header = " | ".join(parts)
+    lines.append(f"_COPA_HEADER='{header}'")
 
     # Layout config
     height = config.get("_height", "80%")
@@ -257,16 +242,5 @@ def emit_zsh_config(config: dict[str, str]) -> str:
     lines.append(f"_COPA_SUGGEST_COLOR='{config.get('_suggest_color', '242')}'")
     suggest_dir = config.get("_suggest_directory_aware", True)
     lines.append(f"_COPA_SUGGEST_DIR_AWARE='{'true' if suggest_dir else 'false'}'")
-
-    # Split suffixes into close (fzf exits) and continue (fzf re-opens)
-    lines.append("typeset -gA _COPA_CLOSE_SUFFIXES")
-    lines.append("typeset -gA _COPA_CONTINUE_SUFFIXES")
-    for action in ("background", "merge_output", "pipe", "redirect", "chain", "suppress"):
-        key = config.get(action, DEFAULT_KEYS[action])
-        suffix = SUFFIXES[action]
-        if action in continue_actions:
-            lines.append(f"_COPA_CONTINUE_SUFFIXES[{key}]='{suffix}'")
-        else:
-            lines.append(f"_COPA_CLOSE_SUFFIXES[{key}]='{suffix}'")
 
     return "\n".join(lines)

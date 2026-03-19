@@ -26,7 +26,11 @@ def init():
 
 
 @click.command("fzf-list", hidden=True)
-@click.option("--mode", default="all", type=click.Choice(["all", "frequent", "recent", "group", "set"]))
+@click.option(
+    "--mode",
+    default="all",
+    type=click.Choice(["all", "frequent", "recent", "group", "set", "recipes"]),
+)
 @click.option("--group", default=None, shell_complete=complete_group)
 @click.option("--set", "shared_set", default=None, help="Filter by shared set.", shell_complete=complete_shared_set)
 def fzf_list_cmd(mode: str, group: str | None, shared_set: str | None):
@@ -54,6 +58,43 @@ def preview(cmd_id: int):
 
     cmd.score = compute_score(cmd)
     click.echo(format_preview(cmd))
+
+
+@click.command("_recipe-preview", hidden=True)
+@click.argument("recipe_id", type=int)
+def recipe_preview(recipe_id: int):
+    """Rich preview for a recipe in fzf preview pane."""
+    db = get_db()
+    recipe = db.get_recipe(recipe_id)
+    if not recipe:
+        click.echo(f"Recipe {recipe_id} not found.")
+        return
+    lines = [f"Recipe:      {recipe.name}"]
+    if recipe.description:
+        lines.append(f"Description: {recipe.description}")
+    if recipe.group_name:
+        lines.append(f"Group:       {recipe.group_name}")
+    lines.append(f"Steps:       {len(recipe.steps)}")
+    lines.append(f"Runs:        {recipe.run_count}")
+    lines.append("")
+    for step in recipe.steps:
+        desc = f"  # {step.description}" if step.description else ""
+        lines.append(f"  {step.step_order}. {step.command}{desc}")
+    lines.append("")
+    lines.append("Expands to:")
+    lines.append("  " + " && ".join(s.command for s in recipe.steps))
+    click.echo("\n".join(lines))
+
+
+@click.command("_recipe-expand", hidden=True)
+@click.argument("recipe_id", type=int)
+def recipe_expand(recipe_id: int):
+    """Output a recipe's steps joined with && for shell insertion."""
+    db = get_db()
+    recipe = db.get_recipe(recipe_id)
+    if not recipe or not recipe.steps:
+        return
+    click.echo(" && ".join(s.command for s in recipe.steps))
 
 
 @click.command("_set-group", hidden=True)
@@ -466,6 +507,8 @@ def register(cli):
     cli.add_command(init)
     cli.add_command(fzf_list_cmd)
     cli.add_command(preview)
+    cli.add_command(recipe_preview)
+    cli.add_command(recipe_expand)
     cli.add_command(set_group)
     cli.add_command(set_flags)
     cli.add_command(list_groups)
