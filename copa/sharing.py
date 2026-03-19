@@ -138,11 +138,7 @@ def import_shared_set(db: Database, copa_file: CopaFile, source_path: str | None
         if not recipe_name:
             continue
         steps_data = recipe_data.get("steps", [])
-        steps = [
-            (s.get("command", ""), s.get("description", ""))
-            for s in steps_data
-            if s.get("command", "").strip()
-        ]
+        steps = [(s.get("command", ""), s.get("description", "")) for s in steps_data if s.get("command", "").strip()]
         if not steps:
             continue
         try:

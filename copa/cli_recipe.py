@@ -82,7 +82,10 @@ def recipe_show(name: str):
 @click.option("-d", "--description", default="", help="Recipe description.")
 @click.option("-g", "--group", default=None, help="Group name.", shell_complete=complete_group)
 @click.option(
-    "-s", "--step", multiple=True, required=True,
+    "-s",
+    "--step",
+    multiple=True,
+    required=True,
     help="Step as 'command' or 'command :: description' (repeatable).",
 )
 def recipe_add(name: str, description: str, group: str | None, step: tuple[str, ...]):

@@ -293,11 +293,7 @@ def create_mcp_server():
         Each step should have 'command' and optionally 'description'.
         Example: [{"command": "npm run build"}, {"command": "docker push app", "description": "Push to registry"}]
         """
-        step_tuples = [
-            (s.get("command", ""), s.get("description", ""))
-            for s in steps
-            if s.get("command", "").strip()
-        ]
+        step_tuples = [(s.get("command", ""), s.get("description", "")) for s in steps if s.get("command", "").strip()]
         if not step_tuples:
             return "No valid steps provided."
         recipe_id = db.add_recipe(name, step_tuples, description=description, group_name=group)

@@ -21,6 +21,8 @@ Copa tracks the commands you run, ranks them by frequency and recency, and gives
 - **Inline suggestions** — ghost text appears as you type; Tab accepts or opens a completion menu with the suggestion highlighted
 - **Groups & Ctrl+G** — organize commands by project, device, or workflow; assign groups inline from the fzf palette with Ctrl+G
 - **Bulk operations** — Ctrl+B enters select mode for batch group assignment, batch deletion, or batch LLM description
+- **Recipes** — save multi-step command sequences as named recipes; `copa recipe run deploy` executes steps sequentially; share recipes via `.copa` files
+- **Directory-aware suggestions** — commands used in the current directory are boosted in suggestions; automatic, configurable, zero-effort
 - **Sharing & `copa create`** — export/import command sets as `.copa` JSON files; `copa create` scaffolds a `.copa` file from an existing group
 - **Set filtering** — scope list, search, and fzf to a specific shared set with `--set`
 - **MCP server** — expose your commands to Claude Code (or any MCP client)
@@ -588,9 +590,76 @@ alias copa-bt='copa fzf-list --set bluetooth | fzf'
         "--skip <parts>": "Skip specific partitions"
       }
     }
+  ],
+  "recipes": [
+    {
+      "name": "bt-debug",
+      "description": "Enable BT and start logging",
+      "steps": [
+        {"command": "adb shell cmd bluetooth_manager enable", "description": "Enable BT"},
+        {"command": "adb logcat -s bt_btif | tee bt.log", "description": "Start BT logging"}
+      ]
+    }
   ]
 }
 ```
+
+## Recipes
+
+![Recipes Demo](demos/12-recipes.gif)
+
+Recipes are named, ordered sequences of commands — like a script, but tracked and shareable through Copa.
+
+### Creating recipes
+
+```bash
+# Simple recipe
+copa recipe add deploy \
+  -s 'npm run build' \
+  -s 'docker build -t app .' \
+  -s 'docker push app'
+
+# With descriptions (use :: separator)
+copa recipe add deploy \
+  -d "Full production deploy" \
+  -g devops \
+  -s 'npm run build :: Build the project' \
+  -s 'npm run test :: Run test suite' \
+  -s 'docker push app :: Push to registry'
+```
+
+### Running recipes
+
+```bash
+# Run all steps sequentially
+copa recipe run deploy
+
+# Preview without executing
+copa recipe run deploy --dry-run
+
+# Continue past failures
+copa recipe run deploy --no-stop-on-error
+```
+
+### Managing recipes
+
+```bash
+copa recipe list              # List all recipes
+copa recipe list --json       # JSON output
+copa recipe show deploy       # Show steps
+copa recipe remove deploy     # Delete a recipe
+```
+
+### Sharing recipes
+
+Recipes are included in `.copa` files automatically — when you export a group, its recipes come along:
+
+```bash
+copa share export devops -o devops.copa    # includes recipes in that group
+copa share load devops.copa                # imports commands AND recipes
+```
+
+See `examples/docker.copa` and `examples/deploy.copa` for recipe examples.
 
 ## MCP Server (Claude Code integration)
 
@@ -633,6 +702,10 @@ Available MCP tools:
 - `copa_share_list` — list all loaded shared sets
 - `copa_share_remove` — remove a shared set
 - `copa_export_group` — export a group as a .copa file
+- `copa_recipe_list` — list all recipes
+- `copa_recipe_show` — show a recipe's steps
+- `copa_recipe_add` — create a recipe from ordered steps
+- `copa_recipe_remove` — remove a recipe
 
 ## Configuration
 
@@ -670,6 +743,7 @@ enabled = true              # set to false to disable
 min_length = 2              # minimum chars before querying
 tab_accept = 2              # 1 = accept directly, 2 = open menu first
 color = 242                 # ghost text color (256-color palette)
+directory_aware = true      # boost suggestions from the current directory
 
 # Composition key behavior (continue vs close)
 # "continue" keys re-open fzf so you can chain another command
@@ -735,6 +809,11 @@ continue = []
 | `copa share list`                                        | List shared sets                                            |
 | `copa share sync DIR`                                    | Sync .copa files from dir                                   |
 | `copa import FILE [-g group]`                            | Import commands from markdown                               |
+| `copa recipe add NAME -s 'cmd' [-s 'cmd' ...]`          | Create a multi-step recipe                                  |
+| `copa recipe list [--json]`                              | List all recipes                                            |
+| `copa recipe show NAME`                                  | Show a recipe's steps                                       |
+| `copa recipe run NAME [--dry-run]`                       | Run a recipe's steps sequentially                           |
+| `copa recipe remove NAME`                                | Remove a recipe                                             |
 | `copa reset`                                             | Wipe database and start fresh (keeps config)                |
 | `copa uninstall`                                         | Remove Copa data and show cleanup steps                     |
 
@@ -745,6 +824,8 @@ score = 2.0 * log(1 + frequency) + 8.0 * 0.5^(age_seconds / 3_days)
 ```
 
 Pinned commands get a +1000 bonus. The 3-day half-life means commands used in the last few days are strongly favored — a command used today scores ~8.0 recency, after 3 days ~4.0, after a week ~1.6.
+
+When `directory_aware = true` (default), commands get a bonus based on where you are: +5.0 for the same directory, +2.0 for a parent or child directory. This means `git push` suggests your project's branch, not another repo's.
 
 ## License
 
