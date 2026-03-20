@@ -229,7 +229,7 @@ _copa_fzf_widget() {
         fi
 
         if [[ "$compose_action" == "COMPOSE" ]]; then
-          # Show compose submenu
+          # Show compose submenu (fzf-based)
           local suffix
           suffix=$(_copa_compose_menu)
           if [[ -n "$suffix" ]]; then
@@ -241,8 +241,9 @@ _copa_fzf_widget() {
               LBUFFER="${accumulated}${cmd}${suffix}"
             fi
           else
-            # Cancelled — put command in buffer as-is
-            LBUFFER="${accumulated}${cmd}"
+            # Cancelled — return to the main fzf palette
+            accumulated="${accumulated}"
+            continue
           fi
         else
           LBUFFER="${accumulated}${cmd}"
@@ -258,33 +259,38 @@ _copa_fzf_widget() {
   zle reset-prompt
 }
 
-# --- Compose submenu: pick a shell operator ---
+# --- Compose submenu: pick a shell operator via fzf ---
 _copa_compose_menu() {
   local choice
-  local _copa_tty
-  exec {_copa_tty}<>/dev/tty
+  choice=$(printf '%s\n' \
+    '|           pipe         → re-opens fzf' \
+    '&&          chain        → re-opens fzf' \
+    '>           redirect     → re-opens fzf' \
+    '&           background' \
+    '2>&1        merge stderr' \
+    '2>/dev/null suppress stderr' \
+  | fzf \
+      --height 10 \
+      --layout reverse \
+      --prompt 'compose> ' \
+      --header 'Select operator · Tab/↑↓:navigate · Enter:select · Esc:cancel' \
+      --no-info \
+      --no-sort \
+      --pointer '▶' \
+      --color 'pointer:yellow' \
+  )
 
-  echo "" >&$_copa_tty
-  echo "  Compose operator:" >&$_copa_tty
-  echo "    1: |          pipe" >&$_copa_tty
-  echo "    2: &&         chain" >&$_copa_tty
-  echo "    3: >          redirect" >&$_copa_tty
-  echo "    4: &          background" >&$_copa_tty
-  echo "    5: 2>&1       merge stderr" >&$_copa_tty
-  echo "    6: 2>/dev/null  suppress stderr" >&$_copa_tty
-  echo -n "  Choice (1-6, q=cancel): " >&$_copa_tty
-  read -u $_copa_tty choice
+  [[ -z "$choice" ]] && return
 
-  exec {_copa_tty}<&-
-
-  case "$choice" in
-    1) echo " | " ;;
-    2) echo " && " ;;
-    3) echo " > " ;;
-    4) echo " &" ;;
-    5) echo " 2>&1" ;;
-    6) echo " 2>/dev/null" ;;
-    *) echo "" ;;
+  # Extract operator (first whitespace-delimited token)
+  local op="${choice%% *}"
+  case "$op" in
+    '|')           echo " | " ;;
+    '&&')          echo " && " ;;
+    '>')           echo " > " ;;
+    '&')           echo " &" ;;
+    '2>&1')        echo " 2>&1" ;;
+    '2>/dev/null') echo " 2>/dev/null" ;;
   esac
 }
 

@@ -1,5 +1,5 @@
 # Copa Compose Submenu — Chain commands with operators
-# Shows: compose menu with |, &&, >, &, 2>&1, 2>/dev/null
+# Shows: fzf-based compose menu with |, &&, >, &, 2>&1, 2>/dev/null
 
 Output "08-composition.gif"
 
@@ -30,12 +30,12 @@ Sleep 1s
 Type "docker ps"
 Sleep 1s
 
-# Open compose menu (Ctrl+X)
+# Open compose menu (Ctrl+X) — fzf operator picker appears
 Ctrl+X
 Sleep 1.5s
 
-# Select pipe (1) — fzf re-opens
-Type "1"
+# Pipe is already highlighted, press Enter to select it — fzf re-opens
+Enter
 Sleep 1.5s
 
 # Select next command to pipe into
@@ -55,19 +55,23 @@ Sleep 1s
 Type "git pull"
 Sleep 800ms
 
-# Open compose menu and select && (2) — fzf re-opens
+# Open compose menu and arrow down to && (second item)
 Ctrl+X
 Sleep 1s
-Type "2"
+Down
+Sleep 500ms
+Enter
 Sleep 1.5s
 
 Type "npm"
 Sleep 800ms
 
-# Chain again with compose menu
+# Chain again — arrow down to &&
 Ctrl+X
 Sleep 1s
-Type "2"
+Down
+Sleep 500ms
+Enter
 Sleep 1.5s
 
 Type "pytest"
@@ -86,10 +90,14 @@ Sleep 1s
 Type "kubectl"
 Sleep 800ms
 
-# Open compose menu and select background (4) — closes immediately
+# Open compose menu, arrow down to & (4th item)
 Ctrl+X
 Sleep 1s
-Type "4"
+Down
+Down
+Down
+Sleep 500ms
+Enter
 Sleep 1.5s
 
 # Show the command with & appended

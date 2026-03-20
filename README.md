@@ -746,23 +746,18 @@ preview_size = "40%"        # preview pane width (default: 40%)
 
 ![Composition](demos/08-composition.gif)
 
-Press **Ctrl+X** while a command is highlighted to open the compose submenu — a numbered menu of shell operators:
+Press **Ctrl+X** while a command is highlighted to open the compose submenu — an fzf-powered operator picker with arrow keys, Tab, and highlighting:
 
-```
-Compose: 1)| 2)&& 3)> 4)& 5)2>&1 6)2>/dev/null
-Select [1-6]:
-```
+| Operator      | Behavior   | What happens                                                |
+|---------------|------------|-------------------------------------------------------------|
+| `\|`          | continue   | Appends `\|` and re-opens fzf to select the next command    |
+| `&&`          | continue   | Appends `&&` and re-opens fzf to chain another command      |
+| `>`           | continue   | Appends `>` and re-opens fzf for the target                 |
+| `&`           | close      | Appends `&` and closes — run in background                  |
+| `2>&1`        | close      | Appends `2>&1` and closes — merge stderr                    |
+| `2>/dev/null` | close      | Appends `2>/dev/null` and closes — suppress stderr          |
 
-| # | Operator      | Behavior   | What happens                                                |
-|---|---------------|------------|-------------------------------------------------------------|
-| 1 | `\|`          | continue   | Appends `\|` and re-opens fzf to select the next command    |
-| 2 | `&&`          | continue   | Appends `&&` and re-opens fzf to chain another command      |
-| 3 | `>`           | continue   | Appends `>` and re-opens fzf for the target                 |
-| 4 | `&`           | close      | Appends `&` and closes — run in background                  |
-| 5 | `2>&1`        | close      | Appends `2>&1` and closes — merge stderr                    |
-| 6 | `2>/dev/null` | close      | Appends `2>/dev/null` and closes — suppress stderr          |
-
-"Continue" operators re-open fzf so you can build multi-command pipelines. "Close" operators place the final command in your prompt.
+"Continue" operators re-open fzf so you can build multi-command pipelines. "Close" operators place the final command in your prompt. Press **Esc** to cancel and return to the main palette.
 
 When chaining, the prompt shows your accumulated command: `copa [git pull && ]>`.
 
