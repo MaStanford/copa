@@ -468,10 +468,14 @@ fi  # end _COPA_COMPLETION_MODE != 'never'
 # Shows grey suggestion text after the cursor as you type.
 # Controlled by _COPA_SUGGEST_ENABLED (set via copa _fzf-config).
 if [[ "$_COPA_SUGGEST_ENABLED" == 'true' ]]; then
+zmodload zsh/datetime 2>/dev/null  # provides EPOCHREALTIME for debouncing
 
 typeset -g _COPA_SUGGESTION=""
 typeset -g _COPA_SUGGEST_LATCHED=0  # 1 = suppressed (backspace latch)
 typeset -g _COPA_SUGGEST_PENDING=""  # full suggestion passed to completion system
+typeset -g _COPA_SUGGEST_PASTING=0  # 1 = inside a bracketed paste
+typeset -g _COPA_SUGGEST_LAST_FETCH=0  # epoch ms of last fetch
+typeset -gi _COPA_SUGGEST_DEBOUNCE_MS=80  # min ms between fetches
 
 # _copa_suggest_clear is always defined (used by _copa_fzf_widget)
 _copa_suggest_clear() {
@@ -486,9 +490,27 @@ _copa_suggest_fetch() {
   _COPA_SUGGEST_PENDING=""
   POSTDISPLAY=""
   region_highlight=()
+  (( _COPA_SUGGEST_PASTING )) && return  # skip during paste
   (( _COPA_SUGGEST_LATCHED )) && return  # suppressed by backspace latch
   (( ${#BUFFER} < _COPA_SUGGEST_MIN_LENGTH )) && return
   (( CURSOR != ${#BUFFER} )) && return  # skip if cursor not at end
+
+  # Debounce: skip if last fetch was too recent (avoids subprocess flood on fast typing)
+  local now_ms
+  if [[ -n "$EPOCHREALTIME" ]]; then
+    # EPOCHREALTIME is e.g. "1774041695.803544" — extract seconds and first 3 decimals
+    local secs="${EPOCHREALTIME%%.*}"
+    local frac="${EPOCHREALTIME#*.}"
+    frac="${frac:0:3}"  # first 3 digits = milliseconds
+    now_ms=$(( secs * 1000 + ${frac:-0} ))
+  else
+    now_ms=$(( EPOCHSECONDS * 1000 ))
+  fi
+  if (( now_ms - _COPA_SUGGEST_LAST_FETCH < _COPA_SUGGEST_DEBOUNCE_MS )); then
+    return
+  fi
+  _COPA_SUGGEST_LAST_FETCH=$now_ms
+
   local result
   local _suggest_args=("$BUFFER")
   [[ "$_COPA_SUGGEST_DIR_AWARE" == 'true' ]] && _suggest_args+=(--cwd "$PWD")
@@ -504,6 +526,18 @@ _copa_suggest_fetch() {
 }
 
 # --- Widget wrappers ---
+
+# Bracketed paste: suppress suggestions during paste, fetch once at end.
+# Terminals send ESC[200~ before paste and ESC[201~ after.
+_copa_suggest_bracketed_paste() {
+  _COPA_SUGGEST_PASTING=1
+  _copa_suggest_clear
+  zle .bracketed-paste
+  _COPA_SUGGEST_PASTING=0
+  _COPA_SUGGEST_LATCHED=0
+  _copa_suggest_fetch
+}
+zle -N bracketed-paste _copa_suggest_bracketed_paste
 
 # self-insert: type a character, unlatch, then fetch suggestion
 _copa_suggest_self_insert() {
